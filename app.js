@@ -1,6 +1,8 @@
 /* Pathways trainer: home, walk-a-case, map, quick-fire, progress. Offline, no dependencies. */
 (function(){
 const PW = window.PATHWAYS || [];
+PW.forEach(p => { const fw = (window.FORK_WHY||{})[p.id] || {}, nw = (window.NODE_WHY||{})[p.id] || {};
+  for (const [id, n] of Object.entries(p.nodes)){ if (n.fork && fw[id]) n.fork.forEach((f, i) => { if (fw[id][i]) f.w = fw[id][i]; }); if (!n.why && nw[id]) n.why = nw[id]; } });
 const PWMAP = {}; PW.forEach(p => PWMAP[p.id] = p);
 const SOON = [
   {n:"Advanced life support",c:"#c2302b"},
@@ -245,11 +247,10 @@ function walk(pw, learn, hard){
         const ok = i === correct; total++; if (ok) right++;
         grade(`${pw.id}:${forkId}>${correct}`, ok);
         b.classList.add(ok ? "ok" : "bad");
-        if (!ok){ f.children[correct].classList.add("ok"); f.classList.add("shake"); go = correct;
-          const hint = (cs.hints && cs.hints[forkId]) || "";
-          tree.appendChild(el(`<div class="fb">For this patient it's <b>${n.fork[correct].l}</b>.${hint?" "+hint:""}</div>`)); }
-        else if (cs.hints && cs.hints[forkId]) tree.appendChild(el(`<div class="note" style="text-align:center;margin-top:6px">${cs.hints[forkId]}</div>`));
-      } else b.classList.add("ok");
+        if (!ok){ f.children[correct].classList.add("ok"); f.classList.add("shake"); go = correct; }
+        const hint = (cs.hints && cs.hints[forkId]) || "", w = n.fork[correct].w || "";
+        tree.appendChild(el(`<div class="fb">${ok ? "" : `For this patient it's <b>${n.fork[correct].l}</b>. `}${hint ? hint + " " : ""}${w ? `<div style="margin-top:${ok&&!hint?0:6}px"><b>Why ${n.fork[correct].l.toLowerCase()}?</b> ${w}</div>` : ""}</div>`));
+      } else { b.classList.add("ok"); if (o.w) tree.appendChild(el(`<div class="fb"><b>Why ${o.l.toLowerCase()}?</b> ${o.w}</div>`)); }
       [...f.children].forEach((c, k) => { if (k !== go && k !== i) c.style.opacity = .45; });
       n.fork.forEach((o2, k) => { if (k !== go) tree.appendChild(el(`<div class="ghost">If ${o2.l.toLowerCase()} → ${pw.nodes[o2.to].t}</div>`)); });
       cur = n.fork[go].to; meta();
@@ -330,7 +331,7 @@ function map(pw){
     t.style.outline = "2px solid var(--ink)";
     const st = nodeStatus(pw, id);
     const word = {good:"Solid", ok:"Getting there", weak:"Missed last time", "":"Not tried yet"}[st];
-    det.innerHTML = ""; det.appendChild(el(`<div class="card" style="animation:pop .25s"><div class="lbl">${word}</div><div style="font-weight:700;font-size:16px">${n.t}</div>${n.s?`<div class="note" style="margin-top:2px">${n.s}</div>`:""}${n.why?`<div class="fb"><b>Why?</b> ${n.why}</div>`:""}${n.flag?`<div class="fb" style="background:var(--flbg);color:var(--fl)"><b>Red flag</b> ${n.flag}</div>`:""}${dgHTML(n, pw)}${n.ref?`<div style="margin-top:10px">${refHTML(n, pw)}</div>`:""}</div>`));
+    det.innerHTML = ""; det.appendChild(el(`<div class="card" style="animation:pop .25s"><div class="lbl">${word}</div><div style="font-weight:700;font-size:16px">${n.t}</div>${n.s?`<div class="note" style="margin-top:2px">${n.s}</div>`:""}${n.why?`<div class="fb"><b>Why?</b> ${n.why}</div>`:""}${n.fork?n.fork.filter(f=>f.w).map(f=>`<div class="fb"><b>If ${f.l.toLowerCase()}:</b> ${f.w}</div>`).join(""):""}${n.flag?`<div class="fb" style="background:var(--flbg);color:var(--fl)"><b>Red flag</b> ${n.flag}</div>`:""}${dgHTML(n, pw)}${n.ref?`<div style="margin-top:10px">${refHTML(n, pw)}</div>`:""}</div>`));
   };
   main.appendChild(el(`<p class="note">Tap any box for its notes. Pinch or use − / + to zoom, and scroll sideways on a small screen.</p>`));
 }
@@ -347,7 +348,7 @@ function buildQ(it){
   const to = pw.nodes[n.fork[it.i].to];
   const pool = [...new Set(Object.values(pw.nodes).filter(x => (x.kind === "ac" || x.kind === "en") && x.t !== to.t).map(x => x.t))];
   const opts = [to.t].concat(shuffle(pool).slice(0, 3));
-  return {it, ctx: crumbs(pw, it.node), q: `${n.t} <b>${n.fork[it.i].l}</b>. What next?`, opts, a: 0, after: to};
+  return {it, ctx: crumbs(pw, it.node), q: `${n.t} <b>${n.fork[it.i].l}</b>. What next?`, opts, a: 0, after: to, edgeWhy: n.fork[it.i].w};
 }
 function quick(pw){
   const pws = pw ? [pw] : PW;
@@ -376,7 +377,7 @@ function quick(pw){
       grade(Q.it.key, ok);
       b.classList.add(ok ? "ok" : "bad"); if (!ok) card.querySelectorAll(".opt")[opts.findIndex(x => x.k === Q.a)].classList.add("ok");
       const n = Q.after;
-      card.appendChild(el(`<div class="fb"><b>${n.t}</b>${n.s?` · ${n.s}`:""}${n.why?`<div style="margin-top:6px">${n.why}</div>`:""}</div>`));
+      card.appendChild(el(`<div class="fb"><b>${n.t}</b>${n.s?` · ${n.s}`:""}${Q.edgeWhy?`<div style="margin-top:6px">${Q.edgeWhy}</div>`:""}${n.why?`<div style="margin-top:6px">${n.why}</div>`:""}</div>`));
       const nx = el(`<button class="btn" style="margin-top:12px">${i < queue.length-1 ? "Next" : "Finish"}</button>`);
       nx.onclick = () => { i++; if (i < queue.length) show(); else end(); };
       card.appendChild(nx);
