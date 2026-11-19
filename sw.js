@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION whenever you change any file.
-const VERSION = "gt-v4";
+const VERSION = "gt-v5";
 const FILES = ["./", "index.html", "app.js", "pathways/acs.js", "pathways/pe.js", "pathways/dvt.js", "abx.html", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png"];
 self.addEventListener("install", e => {

@@ -172,12 +172,13 @@ function caseEnd(pw, c){ let id = pw.root, g = 0; while (g++ < 60){ const n = pw
 function walk(pw, learn, hard){
   const cs = learn ? null : pickCase(pw, hard);
   setBar(learn ? "Learn · " + pw.short : pw.short + (hard ? " · hard case" : " · case"), pw.id, "");
-  const twists = cs ? (cs.twists || (cs.twist ? [cs.twist] : [])) : []; const twDone = {};
+  const twists = cs ? (cs.twists || (cs.twist ? [cs.twist] : [])) : []; const twDone = {}; const fdDone = {};
+  function find(id){ if (!cs || !cs.find || !cs.find[id] || fdDone[id]) return; fdDone[id] = 1; tree.appendChild(el(`<div class="res"><div class="lbl">New information</div>${cs.find[id]}</div>`)); }
   main.innerHTML = "";
   let right = 0, total = 0, steps = 0, cur = pw.root;
   if (cs){
     const v = cs.v;
-    main.appendChild(el(`<div class="case"><div class="lbl">Patient</div><div class="who">${v.who}</div><div class="hx">${v.hx}</div>${v.obs?`<div class="obs">${v.obs}</div>`:""}${v.inv?`<div class="inv">${v.inv}</div>`:""}</div>`));
+    main.appendChild(el(`<div class="case"><div class="lbl">Patient</div><div class="who">${v.who}</div><div class="hx">${v.hx}</div>${v.obs?`<div class="obs">${v.obs}</div>`:""}${v.inv?`<div class="inv">${v.inv}</div>`:""}<div class="note" style="margin-top:8px">More results appear as you work down the pathway.</div></div>`));
   } else {
     main.appendChild(el(`<div class="card"><div class="lbl">Learn mode</div><div class="note">No marking. Tap to reveal each step, pick any branch at a fork, and tap a box with ⓘ for the why. Go back and take the other branch whenever you like.</div></div>`));
   }
@@ -188,7 +189,7 @@ function walk(pw, learn, hard){
   const line = () => { if (tree.children.length) tree.appendChild(el(`<div class="ln"></div>`)); };
 
   function afterNode(n, box){
-    meta();
+    meta(); find(cur);
     const tw = twists.find((t, k) => t.at === cur && !twDone[k]);
     if (tw){ twDone[twists.indexOf(tw)] = 1; return twist(n, box, tw, twists.indexOf(tw)); }
     if (n.fork) return fork(n, box);
@@ -237,7 +238,7 @@ function walk(pw, learn, hard){
   }
   function ask(n){
     const a = n.ask; const ans = (cs && cs.asks && cs.asks[cur] != null) ? cs.asks[cur] : a.a;
-    line();
+    line(); find(cur);
     const ph = el(`<div class="n hid">?</div>`); tree.appendChild(ph);
     const card = el(`<div class="ask"><div class="q">${(cs && cs.askq && cs.askq[cur]) || a.q}</div></div>`); tree.appendChild(card);
     btn.style.display = "none";
