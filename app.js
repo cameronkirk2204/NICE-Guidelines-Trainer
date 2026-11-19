@@ -70,16 +70,20 @@ function ring(frac, col, size){
   size = size || 40; const r = size/2 - 4, c = 2*Math.PI*r, pct = Math.round(frac*100);
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-label="${pct}% mastered"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c*frac} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="${size/3.6}" font-weight="700" fill="var(--ink)">${pct}</text></svg>`;
 }
+let CURPW = null;
+function refHTML(n, pw){ pw = pw || CURPW; return (n.ref && pw && pw.refUrl) ? `<a class="ref" href="${pw.refUrl}" target="_blank" rel="noopener">${pw.refName} · ${n.ref} ↗</a>` : ""; }
+function dgHTML(n, pw){ pw = pw || CURPW; if (!n.dg || !pw || !pw.diagrams) return ""; return n.dg.map(id => { const d = pw.diagrams.find(x => x.id === id); return d ? `<div class="dg"><div class="lbl">${d.t}</div>${d.svg}</div>` : ""; }).join(""); }
 function notesHTML(n){
   let h = "";
   if (n.why) h += `<b>Why?</b>${n.why}`;
   if (n.flag) h += `<b>Red flag</b>${n.flag}`;
+  h += dgHTML(n) + refHTML(n);
   return h ? `<div class="notes">${h}</div>` : "";
 }
 function nodeBox(n, extra){
-  const has = n.why || n.flag;
+  const has = n.why || n.flag || n.dg || n.ref;
   const b = el(`<div class="n ${n.kind} ${extra||""}">${has?'<span class="i">ⓘ</span>':""}${n.t}${n.s?`<small>${n.s}</small>`:""}${notesHTML(n)}</div>`);
-  if (has) b.onclick = () => b.classList.toggle("open");
+  if (has) b.onclick = e => { if (e.target.closest("a")) return; b.classList.toggle("open"); };
   return b;
 }
 
@@ -99,7 +103,9 @@ function route(){
   if (h === "backup") return backup();
   const pw = PWMAP[parts[0]];
   if (!pw) return home();
+  CURPW = pw;
   if (parts[1] === "walk") return walk(pw, false);
+  if (parts[1] === "hard") return walk(pw, false, true);
   if (parts[1] === "learn") return walk(pw, true);
   if (parts[1] === "map") return map(pw);
   if (parts[1] === "quick") return quick(pw);
@@ -138,26 +144,37 @@ function pathway(pw){
   main.innerHTML = "";
   main.appendChild(el(`<div class="card" style="display:flex;gap:14px;align-items:center">${ring(m, pw.color, 64)}<div><div class="big" style="font-size:18px">${pw.title}</div><div class="note">${pw.blurb}</div></div></div>`));
   main.appendChild(el(`<div class="stat"><div><b>${endsSeen(pw)}/${endsOf(pw).length}</b><span>routes seen</span></div><div><b>${seen}/${its.length}</b><span>steps tried</span></div><div><b>${due}</b><span>due now</span></div></div>`));
-  main.appendChild(el(`<a class="btn" href="#${pw.id}-walk">Walk a case</a>`));
+  const nh = pw.cases.filter(c => c.hard).length, nn = pw.cases.length - nh;
+  main.appendChild(el(`<a class="btn" href="#${pw.id}-walk">Walk a case <span style="opacity:.6;font-weight:400">· ${nn}</span></a>`));
+  if (nh) main.appendChild(el(`<a class="btn" href="#${pw.id}-hard" style="margin-top:8px;background:#c2302b;color:#fff">Hard cases <span style="opacity:.75;font-weight:400">· ${nh}</span></a>`));
   const r = el(`<div class="row" style="margin-top:8px"><a class="btn alt" href="#${pw.id}-learn">Learn</a><a class="btn alt" href="#${pw.id}-quick">Quick-fire</a><a class="btn alt" href="#${pw.id}-map">Map</a></div>`);
   main.appendChild(r);
   main.appendChild(el(`<p class="note" style="margin-top:14px"><b>Walk a case</b> starts from a patient and builds the tree as you go. <b>Learn</b> lets you explore any branch with no marking. <b>Quick-fire</b> drills single steps out of order. <b>Map</b> shows the whole tree, coloured by how well you know each step.</p>`));
-  if (pw.source) main.appendChild(el(`<p class="note">Source: ${pw.source}</p>`));
+  if (pw.diagrams && pw.diagrams.length){
+    main.appendChild(el(`<div class="lbl" style="margin:20px 2px 8px">Diagrams</div>`));
+    pw.diagrams.forEach(d => main.appendChild(el(`<div class="card dg"><div style="font-weight:700;margin-bottom:8px">${d.t}</div>${d.svg}${d.cap?`<div class="note" style="margin-top:8px">${d.cap}</div>`:""}</div>`)));
+  }
+  if (pw.mnemonics && pw.mnemonics.length){
+    main.appendChild(el(`<div class="lbl" style="margin:20px 2px 8px">Mnemonics</div>`));
+    pw.mnemonics.forEach(m => main.appendChild(el(`<div class="card mnem"><div style="font-weight:700;font-size:17px">${m.t}</div><div class="note" style="margin-bottom:8px">${m.sub}</div>${m.items.map(([L, x]) => `<div class="mrow"><span class="ml" style="background:${pw.color}">${L}</span><span>${x}</span></div>`).join("")}${m.note?`<div class="note" style="margin-top:8px">${m.note}</div>`:""}</div>`)));
+  }
+  if (pw.source) main.appendChild(el(`<p class="note" style="margin-top:16px">Cases are written for this app: invented patients built around the guideline. Every step links to the guideline section it comes from.<br>Source: ${pw.refUrl ? `<a href="${pw.refUrl}" target="_blank" rel="noopener">${pw.source}</a>` : pw.source}</p>`));
 }
 
 /* ---------- walk a case / learn ---------- */
-function pickCase(pw){
-  const cs = pw.cases;
+function pickCase(pw, hard){
+  const cs = pw.cases.filter(c => !!c.hard === !!hard);
   const score = c => (P.cases[pw.id+":"+c.id]||0) * 10 + (P.ends[pw.id+":"+caseEnd(pw, c)] ? 5 : 0) + Math.random()*4;
   return cs.slice().sort((a, b) => score(a) - score(b))[0];
 }
 function caseEnd(pw, c){ let id = pw.root, g = 0; while (g++ < 60){ const n = pw.nodes[id]; if (n.fork) id = n.fork[c.route[id] || 0].to; else if (n.next) id = n.next; else return id; } return id; }
 
-function walk(pw, learn){
-  const cs = learn ? null : pickCase(pw);
-  setBar(learn ? "Learn · " + pw.short : pw.short + " · case", pw.id, "");
+function walk(pw, learn, hard){
+  const cs = learn ? null : pickCase(pw, hard);
+  setBar(learn ? "Learn · " + pw.short : pw.short + (hard ? " · hard case" : " · case"), pw.id, "");
+  const twists = cs ? (cs.twists || (cs.twist ? [cs.twist] : [])) : []; const twDone = {};
   main.innerHTML = "";
-  let right = 0, total = 0, steps = 0, cur = pw.root, twistDone = false;
+  let right = 0, total = 0, steps = 0, cur = pw.root;
   if (cs){
     const v = cs.v;
     main.appendChild(el(`<div class="case"><div class="lbl">Patient</div><div class="who">${v.who}</div><div class="hx">${v.hx}</div>${v.obs?`<div class="obs">${v.obs}</div>`:""}${v.inv?`<div class="inv">${v.inv}</div>`:""}</div>`));
@@ -172,13 +189,13 @@ function walk(pw, learn){
 
   function afterNode(n, box){
     meta();
-    if (cs && cs.twist && cs.twist.at === cur && !twistDone){ twistDone = true; return twist(n, box); }
+    const tw = twists.find((t, k) => t.at === cur && !twDone[k]);
+    if (tw){ twDone[twists.indexOf(tw)] = 1; return twist(n, box, tw, twists.indexOf(tw)); }
     if (n.fork) return fork(n, box);
     if (!n.next) return finish(n);
     cur = n.next; btn.style.display = "block"; btn.textContent = "Tap to reveal ↓";
   }
-  function twist(n, box){
-    const t = cs.twist;
+  function twist(n, box, t, ti){
     const card = el(`<div class="twist"><div class="lbl">Twist</div><div style="font-size:15px;line-height:1.45">${t.text}</div></div>`);
     tree.appendChild(card); btn.style.display = "none";
     const opts = shuffle(t.o.map((o, i) => ({o, i})));
@@ -186,7 +203,7 @@ function walk(pw, learn){
     let done = false;
     opts.forEach(({o, i}) => { const b = el(`<button class="opt">${o}</button>`); b.onclick = () => {
       if (done) return; done = true; const ok = i === t.a; total++; if (ok) right++;
-      grade(`${pw.id}:twist:${cs.id}`, ok);
+      grade(`${pw.id}:twist:${cs.id}:${ti}`, ok);
       b.classList.add(ok ? "ok" : "bad"); if (!ok) wrap.children[opts.findIndex(x => x.i === t.a)].classList.add("ok");
       card.appendChild(el(`<div class="fb" style="background:transparent;padding:8px 0 0">${t.why}</div>`));
       afterNode(n, box); scrollEnd();
@@ -249,10 +266,10 @@ function walk(pw, learn){
       ${learn ? "" : `<div class="big">${right}/${total} ${pct===100?"· clean run":""}</div>`}
       ${cs && cs.teach ? `<div class="fb">${cs.teach}</div>` : ""}
       <div class="note" style="margin:8px 0 12px">${endsSeen(pw)}/${endsOf(pw).length} routes seen in ${pw.short}.</div>
-      <button class="btn" id="again">${learn ? "Start again" : "Next case"}</button>
+      <button class="btn" id="again">${learn ? "Start again" : hard ? "Next hard case" : "Next case"}</button>
       <div class="row" style="margin-top:8px"><a class="btn alt" href="#${pw.id}-map">Map</a><a class="btn alt" href="#${pw.id}">Done</a></div></div>`);
     main.appendChild(s);
-    s.querySelector("#again").onclick = () => walk(pw, learn);
+    s.querySelector("#again").onclick = () => walk(pw, learn, hard);
     scrollEnd();
   }
   btn.onclick = reveal;
@@ -287,7 +304,7 @@ function map(pw){
     t.style.outline = "2px solid var(--ink)";
     const st = nodeStatus(pw, id);
     const word = {good:"Solid", ok:"Getting there", weak:"Missed last time", "":"Not tried yet"}[st];
-    det.innerHTML = ""; det.appendChild(el(`<div class="card" style="animation:pop .25s"><div class="lbl">${word}</div><div style="font-weight:700;font-size:16px">${n.t}</div>${n.s?`<div class="note" style="margin-top:2px">${n.s}</div>`:""}${n.why?`<div class="fb"><b>Why?</b> ${n.why}</div>`:""}${n.flag?`<div class="fb" style="background:var(--flbg);color:var(--fl)"><b>Red flag</b> ${n.flag}</div>`:""}</div>`));
+    det.innerHTML = ""; det.appendChild(el(`<div class="card" style="animation:pop .25s"><div class="lbl">${word}</div><div style="font-weight:700;font-size:16px">${n.t}</div>${n.s?`<div class="note" style="margin-top:2px">${n.s}</div>`:""}${n.why?`<div class="fb"><b>Why?</b> ${n.why}</div>`:""}${n.flag?`<div class="fb" style="background:var(--flbg);color:var(--fl)"><b>Red flag</b> ${n.flag}</div>`:""}${dgHTML(n, pw)}${n.ref?`<div style="margin-top:10px">${refHTML(n, pw)}</div>`:""}</div>`));
   };
   main.appendChild(el(`<p class="note">Tap any box for its notes. Pinch or use − / + to zoom, and scroll sideways on a small screen.</p>`));
 }
