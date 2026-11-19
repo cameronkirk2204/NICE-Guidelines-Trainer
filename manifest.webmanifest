@@ -1,6 +1,6 @@
 {
-  "name": "Antibiogram trainer",
-  "short_name": "Abx",
+  "name": "Pathways",
+  "short_name": "Pathways",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

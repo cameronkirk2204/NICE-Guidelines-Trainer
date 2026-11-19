@@ -1,4 +1,4 @@
-# Antibiogram trainer
+# Pathways trainer
 
 Offline quiz app for learning antibiotic coverage. Open it once with signal, add it to your home screen, and it works with no connection after that.
 
