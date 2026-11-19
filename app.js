@@ -188,8 +188,30 @@ function walk(pw, learn, hard){
   meta();
   const line = () => { if (tree.children.length) tree.appendChild(el(`<div class="ln"></div>`)); };
 
+  const scDone = {};
+  function scoreCard(n, done){
+    const sc = n.score, truth = new Set(cs.score[cur]), id = cur;
+    btn.style.display = "none";
+    const card = el(`<div class="ask sc"><div class="q">${sc.name}: tick everything that applies</div><div class="note" style="margin:-4px 0 8px">Use the findings above. ${sc.rule}</div></div>`);
+    const picked = new Set();
+    sc.items.forEach(([t, pts], k) => { const b = el(`<button class="opt sci"><span>${t}</span><b>${pts > 0 ? "+" : ""}${pts}</b></button>`); b.onclick = () => { if (card.dataset.done) return; picked.has(k) ? picked.delete(k) : picked.add(k); b.classList.toggle("on"); tot.textContent = "Your total: " + fmt(sum(picked)); }; card.appendChild(b); });
+    const sum = set => [...set].reduce((a, k) => a + sc.items[k][1], 0);
+    const fmt = x => (Math.round(x*10)/10).toString();
+    const tot = el(`<div style="font-weight:700;margin:10px 0 2px">Your total: 0</div>`); card.appendChild(tot);
+    const go = el(`<button class="btn" style="margin-top:8px">Check my score</button>`); card.appendChild(go);
+    go.onclick = () => {
+      if (card.dataset.done) return; card.dataset.done = 1; go.remove();
+      const ok = picked.size === truth.size && [...picked].every(k => truth.has(k)); total++; if (ok) right++;
+      grade(`${pw.id}:${id}#`, ok);
+      card.querySelectorAll(".sci").forEach((b, k) => { b.classList.remove("on"); if (truth.has(k) && picked.has(k)) b.classList.add("ok"); else if (truth.has(k)) b.classList.add("miss"); else if (picked.has(k)) b.classList.add("bad"); });
+      card.appendChild(el(`<div class="fb">${ok ? "Spot on." : "Not quite."} The score is <b>${fmt(sum(truth))}</b>${ok ? "" : ` (you had ${fmt(sum(picked))})`}. ${sc.rule}<div class="note" style="margin-top:4px">✓ right · + missed · struck = doesn't apply</div></div>`));
+      meta(); done(); scrollEnd();
+    };
+    tree.appendChild(card); scrollEnd();
+  }
   function afterNode(n, box){
     meta(); find(cur);
+    if (cs && cs.score && cs.score[cur] && n.score && !scDone[cur]){ scDone[cur] = 1; return scoreCard(n, () => afterNode(n, box)); }
     const tw = twists.find((t, k) => t.at === cur && !twDone[k]);
     if (tw){ twDone[twists.indexOf(tw)] = 1; return twist(n, box, tw, twists.indexOf(tw)); }
     if (n.fork) return fork(n, box);
