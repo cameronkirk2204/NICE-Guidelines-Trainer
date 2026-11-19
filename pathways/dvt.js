@@ -1,0 +1,113 @@
+/* DVT diagnosis and VTE anticoagulation. NICE NG158 (2020, updated 2023). For learning, not prescribing. */
+(function(){
+const NICE = "https://www.nice.org.uk/guidance/ng158/chapter/Recommendations";
+const D = window.VTE_DIAGRAMS || {};
+
+(window.PATHWAYS = window.PATHWAYS || []).push({
+  id:"dvt", title:"Deep vein thrombosis", short:"DVT", tag:"Vascular", color:"#b5838d",
+  blurb:"2-level Wells, D-dimer and proximal ultrasound, including the scan-negative, D-dimer-positive rescan.",
+  source:"NICE NG158 Venous thromboembolic diseases (2020, updated 2023).",
+  refUrl:NICE, refName:"NICE NG158", root:"susp",
+  nodes:{
+    susp:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"ac", t:"Suspected DVT", s:"history and exam to look for other causes (cellulitis, Baker's cyst, muscle tear)", next:"wells"},
+    wells:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"dq", t:"2-level DVT Wells score 2 or more?", dg:["wellsdvt"],
+      fork:[{l:"Yes", to:"us"}, {l:"No", to:"dd"}]},
+    dd:{ref:"Diagnosis and initial management · D-dimer testing", kind:"ac", t:"Quantitative D-dimer, result within 4 h", s:"interim anticoagulation if it'll take longer",
+      ask:{q:"DVT Wells score 0. First test?", o:["Quantitative D-dimer","Proximal leg ultrasound","CT venogram","Start a DOAC and review in a week"], a:0},
+      why:"Low probability plus a negative D-dimer rules DVT out. The D-dimer is sensitive, so a negative is reassuring, but it's raised in lots of other things, so a positive needs a scan.",
+      next:"ddres"},
+    ddres:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"dq", t:"D-dimer positive?",
+      fork:[{l:"Yes", to:"us"}, {l:"No", to:"stop"}]},
+    us:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"ac", t:"Proximal leg vein ultrasound within 4 h", s:"can't scan within 4 h? D-dimer, interim anticoagulation, scan within 24 h",
+      ask:{q:"DVT Wells score 3. What next?", o:["Proximal leg vein ultrasound within 4 hours","D-dimer and send home if negative","Treat for 3 months without imaging","Repeat Wells in 24 hours"], a:0},
+      why:"Proximal means the popliteal vein and above. Those are the clots that embolise. Interim anticoagulation: choose a drug you could carry on with if the scan is positive.",
+      next:"usres"},
+    usres:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"dq", t:"Scan positive?",
+      fork:[{l:"Yes", to:"diag"}, {l:"No", to:"dd2"}]},
+    diag:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"en", t:"Diagnose DVT and treat", s:"see the anticoagulation pathway"},
+    dd2:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"dq", t:"D-dimer positive?", s:"do one now if it wasn't done before the scan",
+      why:"A negative proximal scan doesn't rule out a calf clot that might extend upwards. If the D-dimer says there's clot somewhere, you look again.",
+      fork:[{l:"Yes", to:"rescan"}, {l:"No", to:"stop"}]},
+    rescan:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"en", t:"Stop interim anticoagulation, rescan in 6–8 days", s:"positive rescan: treat; negative: stop and think again",
+      why:"A calf clot that's going to matter usually extends into the proximal veins within a week, so it shows up on the rescan. Most never do, which is why you don't anticoagulate everyone in the meantime."},
+    stop:{ref:"Diagnosis and initial management · Deep vein thrombosis", kind:"en", t:"DVT ruled out: stop anticoagulation", s:"think about other diagnoses"}
+  },
+  cases:[
+    {id:"cast", v:{who:"38-year-old man", hx:"Right calf swollen and tender. Leg in plaster for 4 weeks after an ankle fracture.", obs:"Afebrile · calf 4 cm bigger on the right", inv:"Wells: plaster 1 + calf swelling 1 + pitting oedema 1 + tender 1 = 4"},
+      route:{wells:0, usres:0}, hints:{usres:"Popliteal vein thrombosis on the scan."}},
+    {id:"cell", v:{who:"55-year-old woman", hx:"Red, hot, swollen left shin with a fever. Small cut on her foot last week.", obs:"T 38.4 · HR 96", inv:"Wells: swelling 1 + tender 1 − 2 (cellulitis as likely) = 0"},
+      route:{wells:1, ddres:1}, hints:{ddres:"D-dimer is negative."}, teach:"Low Wells plus negative D-dimer: treat the cellulitis."},
+    {id:"ddposscan", v:{who:"67-year-old man", hx:"Aching left calf after a long coach journey. No other risk factors.", obs:"Calf 2 cm bigger", inv:"Wells: pitting oedema 1 = 1"},
+      route:{wells:1, ddres:0, usres:0}, hints:{ddres:"D-dimer is raised.", usres:"Femoral vein thrombosis on the scan."}},
+    {id:"rescan", v:{who:"44-year-old woman", hx:"Swollen right leg 2 weeks after a hysterectomy.", obs:"Whole leg swollen, tender along the femoral vein", inv:"Wells: surgery 1 + whole leg 1 + tender 1 = 3"},
+      route:{wells:0, usres:1, dd2:0}, hints:{usres:"Proximal scan is clear.", dd2:"D-dimer is raised."}},
+    {id:"clear", v:{who:"29-year-old man", hx:"Calf pain after a 10 km run, no swelling.", obs:"Tender over gastrocnemius only", inv:"Wells: tender 1 + previous DVT 1 = 2"},
+      route:{wells:0, usres:1, dd2:1}, hints:{usres:"Scan clear.", dd2:"D-dimer negative."}, teach:"Wells likely, scan negative, D-dimer negative: DVT ruled out. Probably a calf strain."},
+    {id:"h-baker", hard:true, v:{who:"71-year-old woman with knee osteoarthritis", hx:"Sudden painful swelling of the left calf after kneeling in the garden.", obs:"Calf tense, bruising around the ankle", inv:"Wells: swelling 1 + pitting 1 + tender 1 − 2 (ruptured Baker's cyst as likely) = 1"},
+      route:{wells:1, ddres:0, usres:1, dd2:0},
+      twists:[{at:"susp", text:"There's a crescent of bruising around the ankle.", q:"What does the 'crescent sign' suggest?", o:["Ruptured Baker's cyst","Phlegmasia cerulea dolens","Necrotising fasciitis","Superficial thrombophlebitis"], a:0,
+        why:"Synovial fluid tracking down from a ruptured popliteal cyst bruises around the malleolus. It mimics DVT, and the two can coexist, so you still follow the pathway."}],
+      hints:{ddres:"D-dimer raised, as it often is after a cyst rupture.", usres:"No DVT, but a ruptured Baker's cyst is seen.", dd2:"The D-dimer was already positive."},
+      teach:"Rescan in 6–8 days. It's probably the cyst, but a positive D-dimer means a calf clot isn't ruled out yet."},
+    {id:"h-delay", hard:true, v:{who:"60-year-old man", hx:"Swollen left leg on Saturday evening. Ultrasound isn't available until Monday.", obs:"Whole leg swollen", inv:"Wells: whole leg 1 + pitting 1 + bedridden after a hernia repair 1 = 3"},
+      route:{wells:0, usres:0},
+      twists:[{at:"us", text:"The scan can't happen until Monday.", q:"What does NICE say to do in the meantime?", o:["D-dimer, interim therapeutic anticoagulation, and scan as soon as possible (aim within 24 h)","Send home and scan on Monday with no treatment","Treat for 3 months without imaging","Give prophylactic-dose LMWH only"], a:0,
+        why:"If the scan can't happen within 4 hours, NICE says do a D-dimer, start interim therapeutic anticoagulation, and get the scan within 24 hours. Pick a drug you'd carry on with if it's positive, like apixaban or rivaroxaban."}],
+      hints:{usres:"Monday's scan shows a femoral DVT."}}
+  ],
+  diagrams:[D.wellsdvt].filter(Boolean)
+});
+
+(window.PATHWAYS = window.PATHWAYS || []).push({
+  id:"vte", title:"Anticoagulation for VTE", short:"VTE treatment", tag:"Haem", color:"#6d597a",
+  blurb:"Which anticoagulant for whom (renal, cancer, antiphospholipid), and how long: provoked vs unprovoked.",
+  source:"NICE NG158 Venous thromboembolic diseases (2020, updated 2023).",
+  refUrl:NICE, refName:"NICE NG158", root:"start",
+  nodes:{
+    start:{ref:"Anticoagulation treatment for confirmed DVT or PE", kind:"ac", t:"DVT or PE confirmed", s:"baseline FBC, U&E, LFTs, PT, APTT, but don't wait for results", next:"haem"},
+    haem:{ref:"Anticoagulation treatment · PE with haemodynamic instability", kind:"dq", t:"PE with haemodynamic instability?", fork:[{l:"Yes", to:"ufh"}, {l:"No", to:"renal"}]},
+    ufh:{ref:"Anticoagulation treatment · PE with haemodynamic instability", kind:"en", t:"UFH infusion, consider thrombolysis", s:"see the PE pathway"},
+    renal:{ref:"Anticoagulation treatment · Renal impairment", kind:"dq", t:"CrCl below 15 ml/min?", s:"estimate with Cockcroft–Gault",
+      why:"All the DOACs are cleared at least partly by the kidneys (dabigatran most of all), so they build up in renal failure. CrCl 15–50: you can still use apixaban, rivaroxaban, edoxaban or LMWH, with dose checks; dabigatran only if CrCl is 30 or more.",
+      fork:[{l:"Yes", to:"lmwhR"}, {l:"No", to:"cancer"}]},
+    lmwhR:{ref:"Anticoagulation treatment · Renal impairment", kind:"en", t:"LMWH, UFH, or LMWH then a VKA", s:"adjust LMWH dose to renal function"},
+    cancer:{ref:"Anticoagulation treatment · Active cancer", kind:"dq", t:"Active cancer?", fork:[{l:"Yes", to:"doacC"}, {l:"No", to:"aps"}]},
+    doacC:{ref:"Anticoagulation treatment · Active cancer", kind:"en", t:"DOAC (apixaban or rivaroxaban)", s:"or LMWH 5+ days then edoxaban or dabigatran; LMWH alone if DOACs unsuitable. Review at 3–6 months",
+      why:"The 2023 update moved DOACs ahead of LMWH in cancer: they work at least as well and avoid months of daily injections. Watch out for GI and GU cancers (more bleeding) and drug interactions with chemotherapy."},
+    aps:{ref:"Anticoagulation treatment · Antiphospholipid syndrome", kind:"dq", t:"Known triple-positive antiphospholipid syndrome?",
+      fork:[{l:"Yes", to:"vka"}, {l:"No", to:"doac"}]},
+    vka:{ref:"Anticoagulation treatment · Antiphospholipid syndrome", kind:"en", t:"LMWH then warfarin (INR 2–3)", s:"DOACs cause more arterial clots in triple-positive APS",
+      why:"In APS, the antibodies drive arterial as well as venous clots. Trials of DOACs in triple-positive APS were stopped early because of more strokes and MIs, so warfarin stays first-line."},
+    doac:{ref:"Anticoagulation treatment for confirmed DVT or PE", kind:"ac", t:"Apixaban or rivaroxaban", s:"if unsuitable: LMWH 5+ days then dabigatran or edoxaban, or LMWH + VKA",
+      ask:{q:"Confirmed DVT, normal renal function, no cancer. First-line anticoagulant?", o:["Apixaban or rivaroxaban","Warfarin","LMWH for 6 months","Aspirin"], a:0},
+      why:"Apixaban and rivaroxaban work straight away as oral drugs, so no injection lead-in. Dabigatran and edoxaban need 5 days of LMWH first, because that's how they were trialled.",
+      next:"prov"},
+    prov:{ref:"Long-term anticoagulation for secondary prevention", kind:"dq", t:"Provoked by a major transient risk factor?", s:"e.g. surgery, trauma, a cast, significant immobility",
+      why:"If the trigger has gone, the risk of another clot is low, so 3 months is enough. With no trigger, the cause is still there, so recurrence is common once you stop.",
+      fork:[{l:"Yes", to:"stop3"}, {l:"No", to:"unprov"}]},
+    stop3:{ref:"Long-term anticoagulation for secondary prevention", kind:"en", t:"Treat for 3 months, then stop"},
+    unprov:{ref:"Long-term anticoagulation for secondary prevention", kind:"en", t:"Unprovoked: offer continuing beyond 3 months", s:"weigh bleeding risk with a tool such as ORBIT, and the person's wishes",
+      flag:"Don't do extra cancer screening unless there are symptoms or signs. Don't routinely test for thrombophilia."}
+  },
+  cases:[
+    {id:"std", v:{who:"46-year-old woman", hx:"Proximal DVT 10 days after a knee arthroscopy.", obs:"Weight 72 kg", inv:"CrCl 95 · no cancer · no APS"},
+      route:{haem:1, renal:1, cancer:1, aps:1, prov:0}, hints:{prov:"Recent surgery is a major transient trigger."}},
+    {id:"unprov", v:{who:"58-year-old man", hx:"PE with no obvious cause. Fit and well.", obs:"Weight 84 kg", inv:"CrCl 88 · no cancer symptoms · no APS"},
+      route:{haem:1, renal:1, cancer:1, aps:1, prov:1}, hints:{prov:"No trigger at all: unprovoked."}},
+    {id:"ckd", v:{who:"79-year-old woman", hx:"DVT. Advanced CKD, not yet on dialysis.", obs:"Weight 54 kg", inv:"CrCl 12"},
+      route:{haem:1, renal:0}, hints:{renal:"12 is below 15."}},
+    {id:"ca", v:{who:"64-year-old man", hx:"PE while on chemotherapy for lung cancer.", obs:"Weight 70 kg", inv:"CrCl 70"},
+      route:{haem:1, renal:1, cancer:0}},
+    {id:"apsx", v:{who:"34-year-old woman", hx:"Second DVT. Known triple-positive antiphospholipid syndrome after a previous miscarriage.", obs:"Weight 61 kg", inv:"CrCl 110"},
+      route:{haem:1, renal:1, cancer:1, aps:0}},
+    {id:"shock", v:{who:"57-year-old man", hx:"Confirmed PE on CTPA, now hypotensive at 80/50.", obs:"HR 130", inv:"CrCl 60"},
+      route:{haem:0}},
+    {id:"h-crcl", hard:true, v:{who:"83-year-old woman, 48 kg", hx:"Proximal DVT after a fall. Her eGFR on the lab report is 52.", obs:"Creatinine 98 µmol/L", inv:"Cockcroft–Gault CrCl works out at about 30."},
+      route:{haem:1, renal:1, cancer:1, aps:1, prov:0},
+      twists:[{at:"renal", text:"The lab eGFR says 52, but she's 83 and weighs 48 kg.", q:"Which number should guide DOAC dosing?", o:["Cockcroft–Gault CrCl (about 30)","The lab eGFR (52)","Serum creatinine alone","Urine output"], a:0,
+        why:"DOAC licences and trials used Cockcroft–Gault CrCl, which factors in age and weight. In small, elderly people eGFR overestimates kidney function, so you could overdose them."}],
+      hints:{prov:"The fall and immobility provoked it."},
+      teach:"CrCl about 30: still above 15, so a DOAC is fine, but check the dose for her CrCl and weight."}
+  ]
+});
+})();

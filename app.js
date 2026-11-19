@@ -3,7 +3,7 @@
 const PW = window.PATHWAYS || [];
 const PWMAP = {}; PW.forEach(p => PWMAP[p.id] = p);
 const SOON = [
-  {n:"Pulmonary embolism",c:"#e07a5f"},{n:"DVT",c:"#e07a5f"},{n:"Advanced life support",c:"#c2302b"},
+  {n:"Advanced life support",c:"#c2302b"},
   {n:"Acute asthma",c:"#4f8fe0"},{n:"Anaphylaxis",c:"#8b6fd6"},{n:"Sepsis 6",c:"#b7791f"}];
 
 /* ---------- storage ---------- */
@@ -71,7 +71,7 @@ function ring(frac, col, size){
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-label="${pct}% mastered"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c*frac} ${c}" transform="rotate(-90 ${size/2} ${size/2})"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" font-size="${size/3.6}" font-weight="700" fill="var(--ink)">${pct}</text></svg>`;
 }
 let CURPW = null;
-function refHTML(n, pw){ pw = pw || CURPW; return (n.ref && pw && pw.refUrl) ? `<a class="ref" href="${pw.refUrl}" target="_blank" rel="noopener">${pw.refName} · ${n.ref} ↗</a>` : ""; }
+function refHTML(n, pw){ pw = pw || CURPW; if (!n.ref || !pw) return ""; const r = typeof n.ref === "string" ? {s:n.ref} : n.ref; const url = r.url || pw.refUrl, name = r.name || pw.refName; return url ? `<a class="ref" href="${url}" target="_blank" rel="noopener">${name} · ${r.s} ↗</a>` : ""; }
 function dgHTML(n, pw){ pw = pw || CURPW; if (!n.dg || !pw || !pw.diagrams) return ""; return n.dg.map(id => { const d = pw.diagrams.find(x => x.id === id); return d ? `<div class="dg"><div class="lbl">${d.t}</div>${d.svg}</div>` : ""; }).join(""); }
 function notesHTML(n){
   let h = "";
@@ -283,8 +283,11 @@ function map(pw){
   const z = el(`<div class="zoom"><button data-z="-">−</button><button data-z="+">+</button><button data-z="0">Fit</button></div>`); main.appendChild(z);
   const wrap = el(`<div class="mapwrap"></div>`);
   const inner = el(`<div style="width:max-content;min-width:100%"></div>`);
+  const drawn = {};
   function render(id){
     const n = pw.nodes[id];
+    if (drawn[id]) return `<div class="mcol"><div class="mlab" style="border-style:dashed">↪ joins “${n.t}” above</div></div>`;
+    drawn[id] = 1;
     let h = `<div class="mcol"><div class="n mn ${n.kind} st-${nodeStatus(pw, id)}" data-id="${id}">${n.t}${n.s?`<small>${n.s}</small>`:""}</div>`;
     if (n.next) h += `<div class="ln"></div>` + render(n.next);
     if (n.fork) h += `<div class="ln"></div><div class="mfork">` + n.fork.map(f => `<div class="mbr"><div class="ln"></div><div class="mlab">${f.l}</div><div class="ln"></div>${render(f.to)}</div>`).join("") + `</div>`;

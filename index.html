@@ -117,6 +117,11 @@ main{max-width:720px;margin:0 auto;padding:16px 16px calc(40px + env(safe-area-i
 .dg svg{display:block;max-width:420px;margin:0 auto}
 .mrow{display:flex;gap:10px;align-items:flex-start;padding:5px 0;font-size:15px;line-height:1.4}
 .ml{flex:none;width:28px;height:28px;border-radius:8px;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center}
+.wt{width:100%;border-collapse:collapse;font-size:13.5px}.wt td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:top}.wt td:last-child{text-align:right;font-weight:700;white-space:nowrap;padding-left:10px}
+.wtf{font-size:13px;margin-top:8px;line-height:1.45}
+.ladder div,.signs div{border-radius:10px;padding:9px 11px;margin-bottom:6px;font-size:13.5px;line-height:1.4}
+.ladder b,.signs b{display:block;font-size:14px}
+.signs div{background:var(--soft)}
 @keyframes pop{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 @keyframes shake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 .shake{animation:shake .25s 2}
@@ -126,6 +131,8 @@ main{max-width:720px;margin:0 auto;padding:16px 16px calc(40px + env(safe-area-i
 <div class="bar" id="bar"></div>
 <main id="main"></main>
 <script src="pathways/acs.js"></script>
+<script src="pathways/pe.js"></script>
+<script src="pathways/dvt.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}</script>
 </body>
