@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141416" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Abx">
+<title>Antibiogram trainer</title>
+<style>
+:root{
+  --bg:#f6f5f1;--card:#fff;--ink:#1d1d1f;--mut:#6b6b70;--line:#e2e0da;
+  --gp:#3a5fc8;--gnb:#b0161b;--gnc:#7b3f8c;--an:#6b5200;--at:#6b6b6b;
+  --ok:#1f8a4c;--okbg:#e3f4ea;--bad:#c2302b;--badbg:#fbe5e3;--miss:#b7791f;--missbg:#fdf1d8;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#141416;--card:#1f1f23;--ink:#ececef;--mut:#9a9aa2;--line:#33333a;
+  --okbg:#173a26;--badbg:#3f1c1a;--missbg:#3c2f12}
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-tap-highlight-color:transparent}
+header{padding-top:env(safe-area-inset-top);position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 4px;max-width:760px;margin:0 auto}
+.top h1{font-size:17px;margin:0}
+.score{font-size:13px;color:var(--mut)}
+nav{display:flex;gap:4px;padding:6px 10px 8px;max-width:760px;margin:0 auto;overflow-x:auto}
+nav button{flex:1;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 6px;border-radius:9px;font-size:14px;white-space:nowrap}
+nav button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+main{max-width:760px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.q-label{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}
+.q-title{font-size:24px;font-weight:700;margin:4px 0 2px}
+.q-sub{font-size:14px;color:var(--mut)}
+.group{margin-top:12px}
+.ghead{font-size:12px;font-weight:700;color:#fff;padding:4px 8px;border-radius:6px 6px 0 0;display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:6px}
+.chip{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:20px;padding:9px 13px;font-size:15px;font-style:italic;min-height:42px}
+.chip.drug{font-style:normal}
+.chip.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.ok{background:var(--okbg);border-color:var(--ok);color:var(--ink)}
+.chip.ok::before{content:"✓ ";color:var(--ok);font-style:normal}
+.chip.bad{background:var(--badbg);border-color:var(--bad);color:var(--ink);text-decoration:line-through}
+.chip.miss{background:var(--missbg);border-color:var(--miss);border-style:dashed;color:var(--ink)}
+.chip.miss::before{content:"+ ";color:var(--miss);font-style:normal}
+.row{display:flex;gap:8px;margin-top:16px}
+.btn{flex:1;border:0;border-radius:11px;padding:13px;font-size:16px;font-weight:600;background:var(--ink);color:var(--bg)}
+.btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.why{margin-top:14px;padding:12px;border-radius:10px;background:var(--bg);font-size:15px;line-height:1.45;display:none}
+.why b{display:block;margin-bottom:4px}
+.verdict{font-weight:700;font-size:16px;margin-top:12px}
+.legend{font-size:12px;color:var(--mut);margin-top:8px}
+.rule{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.rule h3{margin:0 0 6px;font-size:16px}
+.rule p{margin:6px 0;font-size:15px;line-height:1.5}
+.rule .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;color:#fff;margin-right:4px;vertical-align:1px}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;font-size:12px}
+th,td{border-bottom:1px solid var(--line);padding:0}
+th.drug,td.drug{position:sticky;left:0;background:var(--card);text-align:left;padding:6px 8px;white-space:nowrap;font-weight:600;z-index:1;border-right:1px solid var(--line)}
+thead th{padding:4px 2px;color:#fff;font-weight:600;font-size:10.5px;min-width:40px}
+td.c{width:40px;height:30px;text-align:center}
+td.c.y{background:var(--cc)}
+td.c.y::after{content:"●";color:#fff;font-size:10px}
+.hide td.c.y{background:transparent}
+.hide td.c.y::after{content:""}
+.hide td.c.y.rev{background:var(--cc)}
+.hide td.c.y.rev::after{content:"●"}
+.hide td.c.rev:not(.y)::after{content:"·";color:var(--mut)}
+td.cls{font-size:10px;color:var(--mut);font-weight:400;display:block}
+.toggle{display:flex;align-items:center;gap:8px;margin:0 0 10px;font-size:14px}
+.note{font-size:13px;color:var(--mut);line-height:1.45}
+svg text{font-family:inherit}
+.filter{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 2px}
+.filter button{font-size:13px;padding:6px 10px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.filter button.on{background:var(--ink);color:var(--bg)}
+
+/* chart v2 */
+.ab{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 10px 4px}
+.abhead,.abrow{display:grid;grid-template-columns:1fr;gap:3px}
+@media (min-width:620px){.abhead,.abrow{grid-template-columns:180px 1fr;column-gap:12px;align-items:center}}
+.abhead{position:sticky;top:calc(92px + env(safe-area-inset-top));background:var(--card);z-index:3;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.grid12{display:grid;grid-template-columns:repeat(12,1fr);gap:2px}
+.gband{color:#fff;font-size:10px;font-weight:700;text-align:center;padding:3px 0;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blab{font-size:10px;text-align:center;color:var(--mut);font-style:italic;writing-mode:vertical-rl;transform:rotate(180deg);height:76px;display:flex;align-items:center;justify-content:flex-start;margin:0 auto;white-space:nowrap}
+.clhead{display:flex;align-items:center;gap:8px;margin:14px 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.clhead .dot{width:10px;height:10px;border-radius:3px}
+.clhead em{white-space:nowrap;font-style:normal;font-weight:500;text-transform:none;letter-spacing:0;color:var(--mut);font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.abrow{padding:5px 0;border-radius:8px;cursor:pointer}
+.abrow:active{background:var(--bg)}
+.abname{font-size:14px;font-weight:600;line-height:1.2}
+.abname small{display:block;font-weight:400;font-size:11px;color:var(--mut)}
+.track{position:relative;height:22px}
+.track .cell{grid-row:1;border-radius:4px;height:22px}
+.track .seg{grid-row:1;height:22px;border-radius:11px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);transition:background .2s}
+.blank .seg{background:transparent!important;box-shadow:none;border:1.5px dashed var(--line)}
+.blank .abrow.rev .seg{background:var(--sc)!important;border:0;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
+.abwhy{display:none;grid-column:1/-1;font-size:14px;line-height:1.45;background:var(--bg);border-radius:8px;padding:9px 11px;margin-top:4px}
+.abrow.open .abwhy{display:block}
+/* classes */
+.stem{white-space:nowrap;font-family:ui-monospace,Menlo,monospace;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:13px}
+.cls-card{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--cc);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.cls-card h3{margin:0 0 4px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cls-card p{margin:5px 0;font-size:15px;line-height:1.5}
+.cls-card .eg{font-size:13px;color:var(--mut)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px}
+.opt{border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:10px 8px;font-size:14px;text-align:left;display:flex;gap:7px;align-items:center}
+.opt .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.opt.ok{background:var(--okbg);border-color:var(--ok)}
+.opt.bad{background:var(--badbg);border-color:var(--bad)}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Antibiogram trainer</h1><div class="score" id="score"></div></div>
+  <nav>
+    <button data-v="drug" class="on">Drug → bugs</button>
+    <button data-v="bug">Bug → drugs</button>
+    <button data-v="rules">Rules</button>
+    <button data-v="classes">Classes</button>
+    <button data-v="chart">Chart</button>
+  </nav>
+</header>
+<main id="main"></main>
+
+<script>
+const GROUPS=[
+ {name:"Gram +ve cocci",s:"GP cocci",col:"var(--gp)",bugs:["mrsa","mssa","strep"]},
+ {name:"Gram −ve bacilli",s:"GN bacilli",col:"var(--gnb)",bugs:["ecoli","pmir","kleb","pseud","escappm"]},
+ {name:"Gram −ve cocci",s:"GN cocci",col:"var(--gnc)",bugs:["ngon","nmen"]},
+ {name:"Anaerobes",s:"Ana",col:"var(--an)",bugs:["anaer"]},
+ {name:"Atypicals",s:"Atyp",col:"var(--at)",bugs:["atyp"]},
+];
+const BUG={mrsa:"MRSA",mssa:"MSSA",strep:"Streptococci",ecoli:"E. coli",pmir:"P. mirabilis",kleb:"Klebsiella",pseud:"Pseudomonas",escappm:"ESCAPPM",ngon:"N. gonorrhoeae",nmen:"N. meningitidis",anaer:"Anaerobes",atyp:"Atypicals"};
+const SHORT={mrsa:"MRSA",mssa:"MSSA",strep:"Strep",ecoli:"E.coli",pmir:"Prot",kleb:"Kleb",pseud:"Pseud",escappm:"ESC",ngon:"N.gon",nmen:"N.men",anaer:"Anaer",atyp:"Atyp"};
+const ALLBUGS=GROUPS.flatMap(g=>g.bugs);
+const BUGCOL={};GROUPS.forEach(g=>g.bugs.forEach(b=>BUGCOL[b]=g.col));
+
+const DRUGS=[
+ {id:"peng",n:"Penicillin G",c:"Penicillin",b:"strep",w:"The original. Too polar and too easily chewed by beta-lactamase to do much beyond strep. Staph almost all make penicillinase now, so MSSA is gone too.",r:["R2"]},
+ {id:"fluclox",n:"Nafcillin / Oxacillin",c:"Anti-staph penicillin (UK: flucloxacillin)",b:"mssa strep",w:"A bulky side chain shields the beta-lactam ring from staph penicillinase, so MSSA comes back. Still a penicillin, so PBP2a means no MRSA. Still can't get through the Gram −ve outer membrane.",r:["R1","R2"]},
+ {id:"amox",n:"Ampicillin / Amoxicillin",c:"Aminopenicillin",b:"strep ecoli pmir nmen",w:"The amino group makes it more hydrophilic, so it gets through Gram −ve porins: E. coli and Proteus. Klebsiella has a chromosomal beta-lactamase (SHV-1), so it's intrinsically resistant. No staph (penicillinase). Neisseria meningitidis is still very penicillin-sensitive.",r:["R2","R7"]},
+ {id:"cefaz",n:"Cefazolin / Cefalexin",c:"1st-gen cephalosporin",b:"mssa strep ecoli pmir kleb",w:"Gram +ves plus 'PEK': Proteus, E. coli, Klebsiella. That's essentially the skin flora plus easy coliforms, which is why cefazolin is the surgical prophylaxis drug.",r:["R9","R1"]},
+ {id:"cefox",n:"Cefotetan / Cefoxitin",c:"2nd-gen (cephamycins)",b:"mssa strep ecoli pmir kleb anaer",w:"Same as 1st gen, plus anaerobes. The 7-α-methoxy group shields the ring from Bacteroides beta-lactamase. (UK's usual 2nd gen, cefuroxime, isn't a cephamycin and doesn't get anaerobes.)",r:["R6","R9"]},
+ {id:"ceftri",n:"Ceftriaxone",c:"3rd-gen cephalosporin",b:"mssa strep ecoli pmir kleb escappm ngon nmen",w:"Moves right: adds Neisseria. That plus decent CSF penetration through inflamed meninges is why it's the meningitis and gonorrhoea drug. Misses Pseudomonas. The chart ticks ESCAPPM, but AmpC can be derepressed on treatment, so be wary in serious infection.",r:["R9","R10","R8"]},
+ {id:"ceftaz",n:"Ceftazidime",c:"3rd-gen cephalosporin",b:"strep ecoli pmir kleb pseud",w:"The 3rd gen that traded staph for Pseudomonas. Weak on Gram +ves, so no MSSA. Shares its side chain with aztreonam (handy for allergy questions).",r:["R8","R9"]},
+ {id:"cefep",n:"Cefepime",c:"4th-gen cephalosporin",b:"mssa strep ecoli pmir kleb pseud escappm ngon nmen",w:"Zwitterion, so it slips through porins fast and is a poor substrate for AmpC. Gets both sides: staph/strep and Pseudomonas/ESCAPPM. Still a beta-lactam, so no MRSA; no anaerobes, no atypicals.",r:["R9","R10","R8"]},
+ {id:"coamox",n:"Amoxicillin + clavulanate",c:"Beta-lactamase inhibitor combo (Augmentin)",b:"mssa strep ecoli pmir kleb anaer",w:"Compare it with amoxicillin. The inhibitor gains you the three beta-lactamase makers: MSSA, Klebsiella, Bacteroides.",r:["R7","R6"]},
+ {id:"unasyn",n:"Ampicillin + sulbactam",c:"Beta-lactamase inhibitor combo (Unasyn)",b:"mssa strep ecoli pmir kleb anaer",w:"Identical pattern to co-amoxiclav. Same logic: inhibitor unlocks staph, Kleb, anaerobes.",r:["R7","R6"]},
+ {id:"piptaz",n:"Piperacillin + tazobactam",c:"Beta-lactamase inhibitor combo (UK: Tazocin)",b:"mssa strep ecoli pmir kleb pseud escappm nmen anaer",w:"Piperacillin is an anti-pseudomonal penicillin, so on top of the co-amox pattern it adds Pseudomonas. Broad Gram −ve plus anaerobes, which is why it's the go-to for sepsis of unknown source.",r:["R7","R8","R6"]},
+ {id:"erta",n:"Ertapenem",c:"Carbapenem",b:"mssa strep ecoli pmir kleb escappm ngon nmen anaer",w:"Everything meropenem gets except Pseudomonas. Poor uptake through OprD and gets pumped out. Trap number one.",r:["R8","R6","R10"]},
+ {id:"mero",n:"Imipenem / Meropenem",c:"Carbapenem",b:"mssa strep ecoli pmir kleb pseud escappm ngon nmen anaer",w:"Stable to almost all beta-lactamases, including AmpC and anaerobe ones. So everything except the two columns no beta-lactam can ever touch: MRSA (PBP2a) and atypicals (no wall).",r:["R1","R5","R6"]},
+ {id:"aztreo",n:"Aztreonam",c:"Monobactam",b:"ecoli pmir kleb pseud escappm ngon nmen",w:"The mirror image of vancomycin. Binds PBP3 of Gram −ves only, so it has no grip on Gram +ve PBPs. Every Gram −ve column, nothing else.",r:["R2"]},
+ {id:"cipro",n:"Ciprofloxacin",c:"Fluoroquinolone",b:"mssa ecoli pmir kleb pseud escappm ngon nmen",w:"Blocks DNA gyrase and topoisomerase IV. Bottom rung of the ladder. Great Gram −ve including Pseudomonas, weak on strep. Don't use it for pneumococcal pneumonia.",r:["R11","R8"]},
+ {id:"levo",n:"Levofloxacin",c:"Fluoroquinolone",b:"mssa strep ecoli pmir kleb pseud escappm ngon nmen atyp",w:"Cipro plus strep plus atypicals. That's what makes it a 'respiratory quinolone'.",r:["R11","R5"]},
+ {id:"moxi",n:"Moxifloxacin",c:"Fluoroquinolone",b:"mssa strep ecoli pmir kleb escappm ngon nmen anaer atyp",w:"Top rung: adds anaerobes, but drops Pseudomonas. Trap number two.",r:["R11","R8"]},
+ {id:"amino",n:"Gentamicin / Tobramycin / Amikacin",c:"Aminoglycoside",b:"ecoli pmir kleb pseud escappm",w:"Aerobic Gram −ve bacilli only. Uptake needs the electron transport chain, so anaerobes and strep (fermenters) don't pull it in. Once inside it makes the 30S misread, the faulty proteins end up in the membrane and it leaks, which is why it's cidal.",r:["R3"]},
+ {id:"clinda",n:"Clindamycin",c:"Lincosamide",b:"mrsa mssa strep anaer",w:"50S ribosome, so PBP2a is irrelevant and it gets MRSA. Excluded by the Gram −ve outer membrane, but anaerobes are fine. Gram +ves and 'above the diaphragm' anaerobes.",r:["R1","R2","R6"]},
+ {id:"azith",n:"Azithromycin",c:"Macrolide",b:"mssa strep nmen atyp",w:"Plugs the 50S exit tunnel and concentrates inside cells, so it's an atypical drug. Big hydrophobic molecule, kept out of Enterobacterales by the outer membrane.",r:["R5","R2"]},
+ {id:"doxy",n:"Doxycycline",c:"Tetracycline",b:"strep ecoli nmen atyp",w:"Ribosomal (30S), gets into cells, so atypicals. Proteus is intrinsically tetracycline-resistant (efflux). (In practice doxy also gets a lot of MRSA; this chart leaves it out.)",r:["R5"]},
+ {id:"vanc",n:"Vancomycin",c:"Glycopeptide",b:"mrsa mssa strep",w:"Binds D-Ala-D-Ala on the peptidoglycan precursor, not the PBP, so mecA doesn't matter: MRSA covered. Huge molecule (~1450 Da) that can't fit through Gram −ve porins: Gram +ve only.",r:["R1","R2"]},
+ {id:"tmp",n:"TMP/SMX (co-trimoxazole)",c:"Antimetabolite (folate)",b:"mrsa mssa strep ecoli pmir kleb escappm nmen",w:"Two blocks on folate synthesis. Bacteria have to make folate, we absorb ours, so it's selective. Nothing to do with the wall, so MRSA is in. Broad aerobic cover. Misses Pseudomonas (efflux) and anaerobes.",r:["R1"]},
+ {id:"metro",n:"Metronidazole",c:"Nitroimidazole",b:"anaer",w:"A prodrug that has to be reduced to become a DNA-shredding radical. Only anaerobes have electron carriers at a low enough redox potential to do it. Anaerobes and nothing else.",r:["R4"]},
+];
+DRUGS.forEach(d=>d.set=new Set(d.b.split(" ")));
+
+const CLASSES=[
+ {k:"pen",n:"Penicillins",col:"#8d99ae",stem:"-cillin",
+  why:"Named after the Penicillium mould Fleming found (penicillus is Latin for a little paintbrush, which is what the mould's spore heads look like under a microscope). Anything ending <span class='stem'>-cillin</span> is a penicillin.",
+  tip:"Fluclox, amox, ampicillin, piperacillin, temocillin. All the same core, with different side chains bolted on, which is what changes the spectrum.",
+  eg:"Penicillin G (benzylpenicillin), flucloxacillin, amoxicillin, piperacillin"},
+ {k:"ceph",n:"Cephalosporins",col:"#4f8fe0",stem:"cef- / ceph-",
+  why:"Named after Cephalosporium, a mould Giuseppe Brotzu found near a sewage outfall in Sardinia in 1945. So cefalexin is essentially ceph + alexin. Anything starting <span class='stem'>cef</span> or <span class='stem'>ceph</span> is a cephalosporin (the old spelling ceph- is still used in the US).",
+  tip:"Rough generation clue: most <span class='stem'>ceft-</span> drugs are 3rd gen (ceftriaxone, ceftazidime). The exceptions are the new 5th gens, ceftaroline and ceftobiprole, the two that get MRSA. 4th gen is really just cefepime.",
+  eg:"Cefalexin, cefazolin, cefuroxime, cefoxitin, ceftriaxone, ceftazidime, cefepime"},
+ {k:"bli",n:"Beta-lactamase inhibitor combos",col:"#8b6fd6",stem:"-bactam / clav-",
+  why:"The inhibitor partner is itself a beta-lactam that the enzyme grabs and gets stuck on (a suicide substrate). Hence <span class='stem'>-bactam</span>: sulbactam, tazobactam. Clavulanate is the odd one, named after Streptomyces clavuligerus.",
+  tip:"So: a <span class='stem'>-cillin</span> plus a <span class='stem'>-bactam</span> or clavulanate = penicillin + inhibitor. Aztreonam is a monobactam, which sounds similar, but it ends <span class='stem'>-onam</span> and isn't an inhibitor.",
+  eg:"Co-amoxiclav (Augmentin), ampicillin-sulbactam (Unasyn), piperacillin-tazobactam (Tazocin)"},
+ {k:"carb",n:"Carbapenems",col:"#e07a5f",stem:"-penem",
+  why:"Carba + penem. A penem is a penicillin-like ring, and carba means a carbon has replaced the sulfur in it. That swap (plus a double bond) is a big part of why carbapenems shrug off most beta-lactamases. Anything ending <span class='stem'>-penem</span>.",
+  tip:"Ertapenem is the E for exception: no Pseudomonas.",
+  eg:"Meropenem, imipenem, ertapenem"},
+ {k:"mono",n:"Monobactams",col:"#e9b03b",stem:"-onam",
+  why:"Mono-bactam: the beta-lactam ring on its own, with no second ring fused to it. Penicillins, cephs and carbapenems all have a partner ring. Because the shape is so different, there's very little cross-allergy with penicillins.",
+  tip:"Only one you need: aztreonam. The exception: it shares a side chain with ceftazidime, so allergy can cross over there.",
+  eg:"Aztreonam"},
+ {k:"quin",n:"Fluoroquinolones",col:"#4fae73",stem:"-floxacin",
+  why:"Fluoro-quinolone: a quinolone core with a fluorine stuck on at position 6. That fluorine is essentially what made them good, improving gyrase binding and cell penetration. The <span class='stem'>-floxacin</span> ending literally carries the 'flo' for fluorine.",
+  tip:"Cipro, levo, moxi, oflox. Ladder of spectrum in the Rules tab.",
+  eg:"Ciprofloxacin, levofloxacin, moxifloxacin, ofloxacin"},
+ {k:"amg",n:"Aminoglycosides",col:"#ef8a3c",stem:"-mycin / -micin",
+  why:"Amino sugars joined by glycosidic bonds, hence amino-glycoside. The spelling tells you which soil bug made it: <span class='stem'>-mycin</span> came from Streptomyces (streptomycin, tobramycin, neomycin), <span class='stem'>-micin</span> from Micromonospora (gentamicin). Amikacin was made in the lab from kanamycin.",
+  tip:"Gent, tobra, amikacin: learn those three as a set.",
+  eg:"Gentamicin, tobramycin, amikacin, streptomycin, neomycin"},
+ {k:"linc",n:"Lincosamides",col:"#2bb3ad",stem:"lin- / clinda-",
+  why:"From lincomycin, made by Streptomyces lincolnensis, found in soil near Lincoln, Nebraska. Clindamycin is essentially chlorinated lincomycin: C(h)l + lin + da.",
+  tip:"Basically only clindamycin.",
+  eg:"Clindamycin, lincomycin"},
+ {k:"mac",n:"Macrolides",col:"#c9a227",stem:"-thromycin",
+  why:"Macro-lide: a big (macro) lactone ring, 14 or 15 atoms. That size is part of why they can't get through Gram −ve porins (Rules tab). Ending <span class='stem'>-thromycin</span> comes from the first one, erythromycin (erythro = red, after Streptomyces erythreus).",
+  tip:"Erythro, clarithro, azithro. All end in <span class='stem'>-thromycin</span>.",
+  eg:"Azithromycin, clarithromycin, erythromycin"},
+ {k:"tet",n:"Tetracyclines",col:"#e0668b",stem:"-cycline",
+  why:"Tetra-cycline = four fused rings. Count them on the structure and that's the name. Doxycycline is deoxy-tetracycline.",
+  tip:"Anything ending <span class='stem'>-cycline</span>: doxy, minocycline, tigecycline.",
+  eg:"Doxycycline, minocycline, tetracycline"},
+ {k:"glyc",n:"Glycopeptides",col:"#4a5fc1",stem:"vanco / teico-",
+  why:"A peptide (seven amino acids) decorated with sugars, so glyco-peptide. Vancomycin comes from 'vanquish'. Its sheer size is the whole story of why it's Gram +ve only.",
+  tip:"Vanc and teicoplanin. Teicoplanin is the one UK wards use a lot.",
+  eg:"Vancomycin, teicoplanin"},
+ {k:"anti",n:"Antimetabolites (folate)",col:"#86b83a",stem:"sulfa- / -prim",
+  why:"Co-trimoxazole is two drugs: trimethoprim + sulfamethoxazole. Trimethoprim is tri-meth-oxy-prim (three methoxy groups on a pyrimidine). Sulfamethoxazole is a sulfonamide, the 'sulfa drugs' that came out of the red dye Prontosil.",
+  tip:"Anything with <span class='stem'>sulfa-</span> blocks folate making. <span class='stem'>-prim</span> (trimethoprim) blocks the next step. Two steps = synergy.",
+  eg:"Co-trimoxazole (TMP/SMX), trimethoprim, sulfamethoxazole"},
+ {k:"nitro",n:"Nitroimidazoles",col:"#a9743a",stem:"-nidazole",
+  why:"Nitro-imidazole: an imidazole ring with a nitro group. The ending <span class='stem'>-nidazole</span> literally contains it. That nitro group is the bit that gets reduced in anaerobes to make the toxic radical (Rules tab).",
+  tip:"Metronidazole, tinidazole.",
+  eg:"Metronidazole, tinidazole"},
+];
+const CLS={};CLASSES.forEach(c=>CLS[c.k]=c);
+const DRUGCLASS={peng:"pen",fluclox:"pen",amox:"pen",cefaz:"ceph",cefox:"ceph",ceftri:"ceph",ceftaz:"ceph",cefep:"ceph",coamox:"bli",unasyn:"bli",piptaz:"bli",erta:"carb",mero:"carb",aztreo:"mono",cipro:"quin",levo:"quin",moxi:"quin",amino:"amg",clinda:"linc",azith:"mac",doxy:"tet",vanc:"glyc",tmp:"anti",metro:"nitro"};
+DRUGS.forEach(d=>d.k=DRUGCLASS[d.id]);
+// extra names for class practice
+const EXTRA=[["Benzylpenicillin","pen"],["Temocillin","pen"],["Flucloxacillin","pen"],["Cefuroxime","ceph"],["Cefotaxime","ceph"],["Cefalexin","ceph"],["Ceftaroline","ceph"],["Cefixime","ceph"],["Co-amoxiclav","bli"],["Tazocin","bli"],["Meropenem","carb"],["Imipenem","carb"],["Ertapenem","carb"],["Aztreonam","mono"],["Ofloxacin","quin"],["Ciprofloxacin","quin"],["Moxifloxacin","quin"],["Gentamicin","amg"],["Tobramycin","amg"],["Amikacin","amg"],["Streptomycin","amg"],["Neomycin","amg"],["Clindamycin","linc"],["Clarithromycin","mac"],["Erythromycin","mac"],["Azithromycin","mac"],["Doxycycline","tet"],["Minocycline","tet"],["Tigecycline","tet"],["Vancomycin","glyc"],["Teicoplanin","glyc"],["Trimethoprim","anti"],["Co-trimoxazole","anti"],["Metronidazole","nitro"],["Tinidazole","nitro"],["Levofloxacin","quin"],["Ceftazidime","ceph"],["Cefepime","ceph"],["Piperacillin","pen"],["Amoxicillin","pen"]];
+// ---- MoA for chart classes (from MoDA handout) ----
+const MOA={
+ pen:["Wall","Binds PBPs covalently and stops the transpeptidase cross-linking the wall. Cidal. Methicillin was the first penicillinase-resistant one, which is where the M in MRSA comes from (flucloxacillin is its modern relative)."],
+ ceph:["Wall","Same as penicillins: covalent PBP binding, no cross-links, the cell bursts. Cidal."],
+ bli:["Wall","The penicillin does the killing. The inhibitor is a decoy beta-lactam that the beta-lactamase grabs and can't let go of."],
+ carb:["Wall","PBP binding like the rest. Mostly IV only (not orally active), and kept as a last resort to protect them."],
+ mono:["Wall","Binds PBP3, which only Gram −ves use to build their wall."],
+ quin:["DNA","Blocks DNA gyrase (mostly in Gram −ves) and topoisomerase IV (mostly in Gram +ves), the enzymes that cut and re-join DNA to manage supercoiling. Ours are different enough to be spared. Cidal."],
+ amg:["30S","Binds the A site on the 16S rRNA of the 30S subunit and makes it misread codons. The faulty proteins get built into the membrane and make it leak, which is why these are cidal when most ribosome drugs are static. Streptomycin, the first one, is now basically a TB drug."],
+ linc:["50S","Binds the 50S subunit. Static. It also switches off toxin production, which is why it's added in necrotising fasciitis and toxic shock."],
+ mac:["50S","Plugs the exit tunnel the new protein leaves the 50S by. Newer structural work suggests it only stalls some proteins, depending on their sequence. Clarithromycin is also the macrolide for H. pylori and Mycobacterium avium."],
+ tet:["30S","Binds the 30S subunit reversibly and stops the aminoacyl-tRNA landing in the A site. Static. Classic uses: rickettsia, chlamydia, Lyme, acne."],
+ glyc:["Wall","Hydrogen-bonds to the D-Ala-D-Ala end of the wall building block, so it can't be slotted in. It sits on the substrate, so PBP2a doesn't matter."],
+ anti:["Folate","Bacteria have to make their own folate because they can't take it up. We absorb ours from food. Sulfamethoxazole copies PABA and blocks DHPS. Trimethoprim copies the pteridine part of folate and blocks DHFR. Two steps of one pathway, so they're synergistic, and they were paired because their pKs match."],
+ nitro:["DNA","Reduced inside anaerobes to a radical that breaks up DNA. Cidal."],
+};
+CLASSES.forEach(c=>{if(MOA[c.k]){c.hit=MOA[c.k][0];c.moa=MOA[c.k][1]}c.grp="chart"});
+
+// ---- off-chart antibacterials + other microbes ----
+const MORE=[
+ {k:"fosfo",grp:"abx",n:"Phosphonic acids",col:"#9c6644",stem:"fosfo-",hit:"Wall",
+  why:"Fos is short for phospho. Fosfomycin is a tiny molecule that copies phosphoenolpyruvate.",
+  moa:"Blocks enol pyruvate transferase (MurA), which is the very first step of building the wall, done inside the cell.",
+  tip:"In the UK it's a single oral dose for UTI, and it's useful for resistant E. coli.",eg:"Fosfomycin"},
+ {k:"wallx",grp:"abx",n:"Other wall blockers",col:"#7d8597",stem:"cyclo- / baci-",hit:"Wall",
+  why:"Cycloserine is a ring-shaped copy of D-alanine. Bacitracin was named after Margaret Tracy, the girl whose infected wound it was first grown from in the 1940s (Bacillus + Tracy).",
+  moa:"Cycloserine stops the two terminal D-alanines being added to the building block. Bacitracin stops the C55 lipid carrier being recycled, so building blocks can't be ferried across the membrane.",
+  tip:"Cycloserine is a second-line TB drug. Bacitracin is too toxic systemically, so it's topical only.",eg:"Cycloserine, bacitracin"},
+ {k:"oxaz",grp:"abx",n:"Oxazolidinones",col:"#3d8b8b",stem:"-zolid",hit:"50S",
+  why:"Oxazolidinone is the ring the drug is built on. Watch the trap: <span class='stem'>-zolid</span> is an antibacterial, <span class='stem'>-azole</span> is usually an antifungal.",
+  moa:"Binds the 50S subunit and stops the first tRNA binding, so translation can't start. Discovered in the mid-1990s and at a new site, so there's little cross-resistance.",
+  tip:"Gram +ves, including MRSA and VRE. Linezolid is the one to know.",eg:"Linezolid, tedizolid"},
+ {k:"amph",grp:"abx",n:"Amphenicols",col:"#b5838d",stem:"-phenicol",hit:"50S",
+  why:"The name is a mash-up of its chemical groups: chlorine, amide, phenyl, nitro and so on. Originally from Streptomyces, now made synthetically.",
+  moa:"Binds the peptidyl transferase centre of the 50S subunit. That centre is a ribozyme, so the drug's target is a piece of RNA, which is rare for any drug.",
+  tip:"UK: mostly eye drops for conjunctivitis. Systemically it's a reserve drug (e.g. meningitis with severe penicillin allergy) because of bone marrow toxicity.",eg:"Chloramphenicol"},
+ {k:"fus",grp:"abx",n:"Fusidanes",col:"#6d597a",stem:"fusid-",hit:"EF-G",
+  why:"From the fungus Fusidium coccineum. It's steroid-shaped, which is unusual for an antibiotic.",
+  moa:"Locks elongation factor G (the GTPase that moves the ribosome one codon along) on the ribosome, so translation jams.",
+  tip:"Narrow Gram +ve, mostly topical for staph (Fucidin cream).",eg:"Fusidic acid"},
+ {k:"strepg",grp:"abx",n:"Streptogramins",col:"#a26769",stem:"-pristin",hit:"50S",
+  why:"They come from Streptomyces. The <span class='stem'>-pristin</span> pair are made from pristinamycin, from Streptomyces pristinaespiralis. Always given as a pair.",
+  moa:"Dalfopristin bends the ribosome so quinupristin binds better. Each one alone is weak and static, but together they're good against Gram +ves.",
+  tip:"IV, Gram +ve only, rarely used.",eg:"Quinupristin-dalfopristin"},
+ {k:"rif",grp:"abx",n:"Rifamycins",col:"#e76f51",stem:"rif-",hit:"RNA pol",
+  why:"Supposedly named after the French heist film Rififi. Rifampicin is the orange one.",
+  moa:"Binds bacterial RNA polymerase at an allosteric site and blocks the growing RNA chain. Our RNA polymerase is untouched. Cidal, and it kills TB both inside and outside cells.",
+  tip:"Turns tears, urine and contact lenses orange. Strong P450 inducer, so it makes the pill fail. Never used alone because resistance comes fast.",eg:"Rifampicin, rifabutin, rifaximin"},
+ {k:"polym",grp:"abx",n:"Polymyxins",col:"#264653",stem:"polymyxin / colistin",hit:"Membrane",
+  why:"Poly-myxin, from Paenibacillus polymyxa. Colistin is polymyxin E.",
+  moa:"Cationic detergents. The positive charges grab the negatively charged LPS of the Gram −ve outer membrane, then the greasy tail breaks the membrane up. That's why they're Gram −ve only, the reverse of most drugs.",
+  tip:"Colistin is a last-resort drug for carbapenem-resistant Gram −ves. Nephrotoxic.",eg:"Colistin (polymyxin E), polymyxin B"},
+ // antivirals
+ {k:"cicl",grp:"virus",n:"Herpes DNA polymerase inhibitors",col:"#577590",stem:"-ciclovir",hit:"Viral DNA pol",
+  why:"Acyclic guanosine, hence a-ciclo-vir: a guanosine whose sugar ring has been cut open.",
+  moa:"The first phosphate can only be added by the virus's own thymidine kinase, so the drug only switches on in infected cells. Host enzymes add the other two. It has no 3′-OH, so once it's built into DNA nothing can be added after it. Obligate chain terminator, about 30 times more potent on the viral polymerase.",
+  tip:"Valaciclovir is the oral prodrug of aciclovir. Ganciclovir is for CMV.",eg:"Aciclovir, valaciclovir, famciclovir, ganciclovir"},
+ {k:"nrti",grp:"virus",n:"Nucleoside RT inhibitors (NRTIs)",col:"#43aa8b",stem:"-vudine / -citabine",hit:"Reverse transcriptase",
+  why:"Fake nucleosides, so a lot of them end in <span class='stem'>-vudine</span> or <span class='stem'>-citabine</span> (zidovudine, lamivudine, emtricitabine). Tenofovir is a nucleotide, so it already comes with one phosphate.",
+  moa:"Get phosphorylated, then reverse transcriptase builds them in and the chain stops.",
+  tip:"Zidovudine was the first HIV drug. Tenofovir and emtricitabine also treat hepatitis B. The backbone of HIV therapy is two of these.",eg:"Zidovudine, lamivudine, emtricitabine, abacavir, tenofovir"},
+ {k:"nnrti",grp:"virus",n:"Non-nucleoside RT inhibitors",col:"#90be6d",stem:"-virine / efavirenz",hit:"Reverse transcriptase",
+  why:"Chemically varied, so the name is less reliable. Nevi<b>rapine</b>, rilpi<b>virine</b>, efa<b>virenz</b>.",
+  moa:"Bind reverse transcriptase next to its active site and bend it out of shape. Lots of P450 interactions.",
+  tip:"Atripla = tenofovir + emtricitabine + efavirenz in one pill.",eg:"Efavirenz, nevirapine, rilpivirine"},
+ {k:"pi",grp:"virus",n:"Protease inhibitors",col:"#f9844a",stem:"-navir / -previr",hit:"Viral protease",
+  why:"<span class='stem'>-navir</span> for HIV, <span class='stem'>-previr</span> for hepatitis C (NS3/4A protease). HCV drugs ending <span class='stem'>-asvir</span> hit NS5A instead.",
+  moa:"HIV makes long inert polyproteins (Gag, Gag-Pol) that its protease has to cut up. Block the scissors and the virions never mature.",
+  tip:"Ritonavir is mostly used as a booster: it blocks the P450 that clears the other protease inhibitors. Cobicistat does the same job. Paxlovid is nirmatrelvir + ritonavir.",eg:"Darunavir, atazanavir, ritonavir, glecaprevir, nirmatrelvir"},
+ {k:"insti",grp:"virus",n:"Integrase inhibitors",col:"#4d908e",stem:"-gravir",hit:"Integrase",
+  why:"Inte-<b>gra</b>-se + vir.",
+  moa:"Block the enzyme that pastes HIV's DNA copy into our genome.",
+  tip:"Cabotegravir + rilpivirine is the long-acting injection.",eg:"Raltegravir, dolutegravir, cabotegravir"},
+ {k:"nai",grp:"virus",n:"Neuraminidase inhibitors",col:"#277da1",stem:"-amivir",hit:"Neuraminidase",
+  why:"Oselt-amivir, zan-amivir: the -amivir ending marks them.",
+  moa:"New flu virions bud off still stuck to sialic acid on the cell. Neuraminidase cuts them free. Block it and they stay stuck. Works on flu A and B.",
+  tip:"Amantadine is the odd flu drug: it blocks the M2 proton channel so the virus can't uncoat, and it only works on flu A.",eg:"Oseltamivir, zanamivir, (amantadine)"},
+ // antifungals
+ {k:"azole",grp:"fungus",n:"Azole antifungals",col:"#bc6c25",stem:"-conazole / -azole",hit:"Ergosterol",
+  why:"Imidazoles (2 nitrogens in the ring) are mostly topical, triazoles (3) are systemic. The trap is metronidazole, a <span class='stem'>-nidazole</span> antibacterial.",
+  moa:"Block lanosterol 14α-demethylase, so no ergosterol gets made and the membrane goes wrong. Static. They also stop Candida turning into its invasive hyphal form.",
+  tip:"Fluconazole gets into CSF (cryptococcal meningitis). Itra-, posa- and voriconazole are the Aspergillus ones. Ketoconazole is oral but hepatotoxic, so mostly topical now.",eg:"Fluconazole, itraconazole, voriconazole, clotrimazole, miconazole"},
+ {k:"polyene",grp:"fungus",n:"Polyenes",col:"#dda15e",stem:"amphotericin / nystatin",hit:"Ergosterol",
+  why:"Poly-ene means lots of double bonds, all down one side of a big ring. Nystatin is named after the New York State lab that found it.",
+  moa:"The doughnut-shaped molecule grabs ergosterol in the fungal membrane and forms a pore. K+ leaks out. It binds our cholesterol a bit, which is where the toxicity comes from, and bacteria not at all.",
+  tip:"Amphotericin is still the gold standard for serious systemic fungal infection, given as a liposome to cut kidney toxicity. Nystatin is topical for oral thrush.",eg:"Amphotericin B, nystatin"},
+ {k:"echino",grp:"fungus",n:"Echinocandins",col:"#606c38",stem:"-fungin",hit:"Fungal wall",
+  why:"From echinocandin B, made by Aspergillus nidulans. Anything ending <span class='stem'>-fungin</span>.",
+  moa:"Block 1,3-β-glucan synthesis in the fungal wall. We have no wall at all, so they're very well tolerated. Cidal for Candida, static for Aspergillus.",
+  tip:"First-line for candidaemia in sick patients.",eg:"Caspofungin, micafungin, anidulafungin"},
+ {k:"allyl",grp:"fungus",n:"Allylamines",col:"#8a5a44",stem:"-fine",hit:"Ergosterol",
+  why:"Terbinafine. The allylamine group is in the name.",
+  moa:"Blocks squalene epoxidase, an earlier step than the azoles. Ergosterol runs out and squalene builds up, which is toxic to the fungus. Cidal.",
+  tip:"Very lipophilic and loves keratin, so it builds up in skin and nails: ringworm and fungal nails.",eg:"Terbinafine"},
+ {k:"fungx",grp:"fungus",n:"Other antifungals",col:"#a68a64",stem:"flucytosine / griseofulvin",hit:"DNA / mitosis",
+  why:"Flu-cytosine is a fluorinated cytosine. Griseofulvin comes from Penicillium griseofulvum.",
+  moa:"Fungi turn flucytosine into 5-fluorouracil (we lack the enzyme to), which messes up their RNA and DNA. Griseofulvin binds microtubules and wrecks the mitotic spindle.",
+  tip:"Flucytosine + amphotericin for cryptococcal meningitis (resistance comes fast if it's used alone). Griseofulvin interacts with the pill.",eg:"Flucytosine, griseofulvin"},
+ // antiprotozoals
+ {k:"artem",grp:"protozoa",n:"Artemisinins",col:"#c1121f",stem:"arte-",hit:"Radicals",
+  why:"From sweet wormwood, Artemisia annua, a traditional Chinese remedy (Tu Youyou won a Nobel prize for it).",
+  moa:"The exact mechanism is still debated. The main idea: an endoperoxide bridge is activated by haem iron, and the parasite is full of digested haemoglobin, so radicals form right where the parasite is.",
+  tip:"First line as ACTs (artemisinin combination therapy). They kill every life stage, including gametocytes, so they cut transmission. Artemether-lumefantrine and DHA-piperaquine work everywhere for now.",eg:"Artesunate, artemether, dihydroartemisinin"},
+ {k:"quine",grp:"protozoa",n:"Quinolines",col:"#780000",stem:"-quine / quinine",hit:"Haem",
+  why:"Quinine came from cinchona bark (used since the 1600s). The synthetic ones end <span class='stem'>-quine</span>.",
+  moa:"Chloroquine is uncharged at neutral pH, so it diffuses into the parasite's acidic food vacuole, gets protonated and is trapped (ion trapping). There it blocks haem polymerase, so toxic free haem builds up instead of being stored as harmless haemozoin.",
+  tip:"Blood stage only. P. falciparum is chloroquine-resistant in most of the world. Mefloquine only covers falciparum and vivax.",eg:"Chloroquine, quinine, mefloquine"},
+ {k:"protox",grp:"protozoa",n:"Other antiprotozoals",col:"#5f0f40",stem:"various",hit:"Various",
+  why:"The trypanosome and Leishmania drugs. Old, toxic, and mostly poorly understood.",
+  moa:"Suramin (since 1920) rides into the trypanosome stuck to plasma proteins. Eflornithine irreversibly blocks ornithine decarboxylase (the same drug is sold as a cream for facial hair). Melarsoprol is an arsenic compound: it reaches the CNS, but it kills a lot of patients too. Stibogluconate is antimony, for leishmaniasis.",
+  tip:"Toxoplasmosis is treated with antifolates: co-trimoxazole or pyrimethamine + sulfadiazine.",eg:"Suramin, pentamidine, eflornithine, melarsoprol, sodium stibogluconate"},
+];
+MORE.forEach(c=>{CLASSES.push(c);CLS[c.k]=c});
+// pyrimethamine/proguanil/dapsone are antifolates: fold into "anti"
+CLS.anti.eg+=". For malaria: pyrimethamine (a trimethoprim lookalike), proguanil, sulfadoxine, dapsone";
+const EXTRA2=[["Fosfomycin","fosfo"],["Cycloserine","wallx"],["Bacitracin","wallx"],["Linezolid","oxaz"],["Tedizolid","oxaz"],["Chloramphenicol","amph"],["Fusidic acid","fus"],["Quinupristin-dalfopristin","strepg"],["Rifampicin","rif"],["Rifabutin","rif"],["Rifaximin","rif"],["Colistin","polym"],["Polymyxin B","polym"],["Pyrimethamine","anti"],["Proguanil","anti"],["Dapsone","anti"],["Sulfadiazine","anti"]];
+const EXTRA3=[["Aciclovir","cicl"],["Valaciclovir","cicl"],["Ganciclovir","cicl"],["Famciclovir","cicl"],["Zidovudine","nrti"],["Lamivudine","nrti"],["Emtricitabine","nrti"],["Tenofovir","nrti"],["Abacavir","nrti"],["Efavirenz","nnrti"],["Nevirapine","nnrti"],["Rilpivirine","nnrti"],["Darunavir","pi"],["Atazanavir","pi"],["Ritonavir","pi"],["Glecaprevir","pi"],["Raltegravir","insti"],["Dolutegravir","insti"],["Cabotegravir","insti"],["Oseltamivir","nai"],["Zanamivir","nai"],["Fluconazole","azole"],["Voriconazole","azole"],["Itraconazole","azole"],["Clotrimazole","azole"],["Miconazole","azole"],["Amphotericin B","polyene"],["Nystatin","polyene"],["Caspofungin","echino"],["Micafungin","echino"],["Anidulafungin","echino"],["Terbinafine","allyl"],["Flucytosine","fungx"],["Griseofulvin","fungx"],["Artesunate","artem"],["Artemether","artem"],["Chloroquine","quine"],["Mefloquine","quine"],["Quinine","quine"],["Suramin","protox"],["Eflornithine","protox"],["Melarsoprol","protox"],["Pentamidine","protox"]];
+let CSCOPE="chart";
+try{CSCOPE=localStorage.getItem("abx-cscope")||"chart"}catch(e){}
+
+const RULES=[
+ {id:"R1",t:"MRSA column: no beta-lactams, ever",tags:["mrsa"],
+  p:["MRSA carries mecA, which codes for PBP2a. Essentially a spare penicillin-binding protein that beta-lactams can't grip. So every penicillin, cephalosporin and carbapenem on this chart misses it, however broad.",
+     "What's left must hit something other than PBPs: vancomycin (binds the peptidoglycan building block), clindamycin (ribosome), co-trimoxazole (folate). That's the whole column.",
+     "Exception off-chart: ceftaroline, the '5th gen' ceph, was designed to bind PBP2a."]},
+ {id:"R2",t:"The Gram −ve outer membrane is the gate",tags:["gp","gn"],svg:true,
+  p:["Gram −ves have an extra outer membrane. Drugs get in through porins, which are small water-filled channels. So the question is always: is it small and hydrophilic enough to fit?",
+     "Vancomycin is massive, so it's stuck outside. Gram +ve only. Macrolides and clindamycin are big and greasy, so the same. Adding an amino group to penicillin (ampicillin) made it hydrophilic enough to get into E. coli and Proteus.",
+     "Aztreonam is the mirror image. It only binds PBP3 of Gram −ves, so it has nothing to grab in Gram +ves. Look at its bar: it starts exactly where the Gram −ves start."]},
+ {id:"R3",t:"Aminoglycosides need oxygen",tags:["gn"],
+  p:["Aminoglycosides are pulled across the inner membrane by the proton motive force from aerobic respiration. No electron transport chain, no uptake.",
+     "Anaerobes have no respiratory chain. Streptococci are fermenters, so same problem. That's why the bar is exactly the five Gram −ve bacilli.",
+     "It's also why gent is given with a beta-lactam for strep/enterococcal endocarditis. The beta-lactam damages the wall and the aminoglycoside gets in that way (synergy)."]},
+ {id:"R4",t:"Metronidazole only works where there's no oxygen",tags:["an"],
+  p:["Nothing to do with the cell wall. It's redox chemistry. Metronidazole is a prodrug, and its nitro group has to be reduced to form a toxic radical that breaks DNA.",
+     "Only anaerobes have electron carriers (ferredoxin, fed by the enzyme PFOR) with a low enough redox potential to do that reduction. In an aerobe, oxygen just takes the electron straight back off, so the drug never activates.",
+     "Hence one tiny bar on the chart. Same trick works on anaerobic protozoa: Giardia, Trichomonas, Entamoeba."]},
+ {id:"R5",t:"Atypicals have no wall to hit",tags:["at"],
+  p:["Mycoplasma has no cell wall at all. Chlamydia and Legionella hide inside your cells. So every wall drug (all the beta-lactams, vancomycin) is useless, which wipes out most of the chart in one go.",
+     "You need drugs that hit the ribosome or DNA and concentrate inside cells: Macrolides, Tetracyclines, Quinolones (the respiratory ones, levo and moxi). Those are the only four bars in the column."]},
+ {id:"R6",t:"Anaerobes make beta-lactamase",tags:["an"],
+  p:["Bacteroides fragilis, the main gut anaerobe, makes a beta-lactamase. So a beta-lactam only covers anaerobes if it's protected.",
+     "Protected means: a beta-lactamase inhibitor (co-amox, amp-sulb, pip-tazo), a carbapenem (stable to it), or a cephamycin (cefoxitin/cefotetan, whose 7-α-methoxy group shields the ring). Ceftriaxone and cefepime aren't protected, so no anaerobes.",
+     "Non-beta-lactams in the column: metronidazole, clindamycin, moxifloxacin. Rough clinical rule: below the diaphragm (gut, abscess, aspiration) think anaerobes."]},
+ {id:"R7",t:"An inhibitor unlocks three columns",tags:["gp","gn","an"],
+  p:["Compare amoxicillin with co-amoxiclav. Clavulanate adds exactly three: MSSA (staph penicillinase), Klebsiella (chromosomal SHV-1, which is why Kleb is intrinsically amp-resistant) and anaerobes (Bacteroides beta-lactamase).",
+     "So you don't learn the combo bars separately. Learn the parent penicillin, then add 'Staph, Kleb, Bacteroides'. Pip-tazo is the same, just starting from an anti-pseudomonal penicillin."]},
+ {id:"R8",t:"The Pseudomonas club",tags:["gn"],
+  p:["Pseudomonas has a tight outer membrane with few porins (OprD), efflux pumps and its own AmpC. Very little gets in.",
+     "The members: ceftazidime, cefepime, pip-tazo, meropenem/imipenem, aztreonam, cipro, levo, aminoglycosides.",
+     "The traps are the convenient broad ones: ceftriaxone, ertapenem and moxifloxacin all skip Pseudomonas. Each looks broad on the chart, and each has a gap in the same column."]},
+ {id:"R9",t:"Cephalosporins move right with each generation",tags:["gp","gn"],
+  p:["1st gen: Gram +ves plus 'PEK' (Proteus, E. coli, Klebsiella). Each generation is more stable to Gram −ve beta-lactamases and better at porins, so the bars slide right.",
+     "3rd gen picks up Neisseria (ceftriaxone, which also gets into CSF when the meninges are inflamed, so meningitis). Ceftazidime trades its Gram +ve cover for Pseudomonas. 4th gen cefepime gets both sides.",
+     "Two things no cephalosporin here covers: MRSA (R1) and enterococci, which this chart leaves out but which are intrinsically ceph-resistant."]},
+ {id:"R10",t:"ESCAPPM means AmpC",tags:["gn"],
+  p:["Enterobacter, Serratia, Citrobacter freundii, Aeromonas, Proteus (vulgaris), Providencia, Morganella. Their shared feature is a chromosomal, inducible AmpC beta-lactamase.",
+     "AmpC destroys ampicillin, 1st and 2nd gen cephs and co-amoxiclav (clavulanate doesn't inhibit it). Reliable: cefepime, carbapenems, quinolones, aminoglycosides, co-trimoxazole.",
+     "The chart ticks ceftriaxone and pip-tazo too, but mutants that pump out AmpC constantly can be selected during treatment, so many guidelines avoid them in serious infection."]},
+ {id:"R11",t:"The quinolone ladder",tags:["gn","gp","at"],
+  p:["Cipro: Gram −ves including Pseudomonas, weak strep. Levo: adds strep and atypicals. Moxi: adds anaerobes, loses Pseudomonas.",
+     "Each step up gains Gram +ve/anaerobe cover and gives away a bit of Gram −ve power. Think of it as a seesaw."]},
+ {id:"R12",t:"Wall drugs kill, ribosome drugs mostly stall",tags:["gp","gn"],wall:true,
+  p:["The wall holds back a lot of pressure: about 20 atmospheres inside a Gram +ve, about 5 in a Gram −ve. Weaken it and the cell bursts. So wall drugs (beta-lactams, vancomycin) are bactericidal.",
+     "Ribosome drugs (macrolides, tetracyclines, clindamycin, linezolid) are mostly bacteriostatic. Bacteria are used to starving, so they just wait it out, and your immune system finishes the job.",
+     "The exception is aminoglycosides. Misreading puts faulty proteins into the membrane, it leaks, and the cell dies. Quinolones, rifampicin and metronidazole are cidal too, because breaking DNA or RNA isn't something you can wait out."]},
+ {id:"R13",t:"Why the drugs spare us",tags:["gp","gn"],
+  p:["Every good target is something bacteria have and we don't, or have in a different form. Peptidoglycan: we have none. Ribosomes: theirs are 70S (50S + 30S), ours are 80S (60S + 40S). Folate: they must make it, we absorb it. DNA gyrase and RNA polymerase: different enough from ours.",
+     "Energy metabolism (glycolysis and so on) is a poor target. It's too like ours, and bacteria can just switch to another fuel.",
+     "The same logic runs through the other microbes. Fungi use ergosterol where we use cholesterol (azoles, amphotericin, terbinafine). Herpes brings its own thymidine kinase (aciclovir). HIV brings reverse transcriptase, protease and integrase."]},
+];
+const RULEMAP={};RULES.forEach(r=>RULEMAP[r.id]=r);
+const TAGCOL={mrsa:"var(--gp)",gp:"var(--gp)",gn:"var(--gnb)",an:"var(--an)",at:"var(--at)"};
+const TAGNAME={mrsa:"MRSA",gp:"Gram +",gn:"Gram −",an:"Anaerobes",at:"Atypicals"};
+
+// ---------- storage ----------
+let S={right:0,total:0,streak:0,weak:{}};
+try{const s=JSON.parse(localStorage.getItem("abx-trainer")||"null");if(s)S=Object.assign(S,s)}catch(e){}
+function save(){try{localStorage.setItem("abx-trainer",JSON.stringify(S))}catch(e){}}
+function scoreLine(){document.getElementById("score").textContent=S.total?`${S.right}/${S.total} · streak ${S.streak}`:""}
+scoreLine();
+
+function pickWeighted(items,key){
+  const w=items.map(i=>1+3*(S.weak[key(i)]||0));
+  let t=w.reduce((a,b)=>a+b,0),r=Math.random()*t;
+  for(let i=0;i<items.length;i++){r-=w[i];if(r<=0)return items[i]}
+  return items[items.length-1];
+}
+function record(key,perfect){
+  S.total++;
+  if(perfect){S.right++;S.streak++;S.weak[key]=Math.max(0,(S.weak[key]||0)-1)}
+  else{S.streak=0;S.weak[key]=Math.min(4,(S.weak[key]||0)+2)}
+  save();scoreLine();
+}
+const el=(h)=>{const d=document.createElement("div");d.innerHTML=h;return d.firstElementChild};
+
+// ---------- views ----------
+const main=document.getElementById("main");
+let view="drug",lastDrug=null,lastBug=null;
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");view=b.dataset.v;render();window.scrollTo(0,0);
+});
+function render(){({drug:drugQ,bug:bugQ,rules:rulesV,chart:chartV,classes:classesV})[view]()}
+
+function ruleLinks(ids){return ids.map(id=>`<a href="#" data-rule="${id}" style="color:inherit">${RULEMAP[id].t}</a>`).join(" · ")}
+function wireRuleLinks(root){root.querySelectorAll("[data-rule]").forEach(a=>a.onclick=e=>{
+  e.preventDefault();view="rules";document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.v==="rules"));
+  rulesV();setTimeout(()=>{const t=document.getElementById(a.dataset.rule);if(t){t.scrollIntoView({block:"start"});t.style.outline="2px solid var(--ink)";setTimeout(()=>t.style.outline="",1500)}},30);
+})}
+
+function drugQ(){
+  let pool=DRUGS.filter(d=>d!==lastDrug);
+  const d=pickWeighted(pool,x=>"d:"+x.id);lastDrug=d;
+  const sel=new Set();let done=false;
+  const c=el(`<div class="card">
+    <div class="q-label">What does it cover?</div>
+    <div class="q-title">${d.n}</div><div class="q-sub">${d.c}</div>
+    <div id="g"></div>
+    <div class="verdict" id="v"></div>
+    <div class="legend" id="lg" style="display:none">✓ right · <span style="text-decoration:line-through">struck</span> = it doesn't cover that · + dashed = you missed it</div>
+    <div class="why" id="why"><b>Why</b>${d.w}<div class="note" style="margin-top:8px">Rules: ${ruleLinks(d.r)}</div></div>
+    <div class="row"><button class="btn alt" id="skip">Skip</button><button class="btn" id="go">Check</button></div>
+  </div>`);
+  const g=c.querySelector("#g");
+  GROUPS.forEach(gr=>{
+    const box=el(`<div class="group"><span class="ghead" style="background:${gr.col}">${gr.name}</span><div class="chips"></div></div>`);
+    gr.bugs.forEach(b=>{
+      const ch=el(`<button class="chip" data-b="${b}">${BUG[b]}</button>`);
+      ch.onclick=()=>{if(done)return;sel.has(b)?sel.delete(b):sel.add(b);ch.classList.toggle("sel")};
+      box.querySelector(".chips").appendChild(ch);
+    });g.appendChild(box);
+  });
+  c.querySelector("#skip").onclick=drugQ;
+  c.querySelector("#go").onclick=()=>{
+    if(done){drugQ();window.scrollTo(0,0);return}
+    done=true;let wrong=0,miss=0;
+    g.querySelectorAll(".chip").forEach(ch=>{
+      const b=ch.dataset.b,y=d.set.has(b),s=sel.has(b);ch.classList.remove("sel");
+      if(y&&s)ch.classList.add("ok");else if(!y&&s){ch.classList.add("bad");wrong++}else if(y&&!s){ch.classList.add("miss");miss++}
+    });
+    const perfect=!wrong&&!miss;record("d:"+d.id,perfect);
+    c.querySelector("#v").textContent=perfect?"Spot on.":`${miss} missed, ${wrong} wrong.`;
+    c.querySelector("#v").style.color=perfect?"var(--ok)":"var(--bad)";
+    c.querySelector("#why").style.display="block";c.querySelector("#lg").style.display="block";
+    c.querySelector("#go").textContent="Next";c.querySelector("#skip").style.display="none";
+  };
+  wireRuleLinks(c);
+  main.innerHTML="";main.appendChild(c);
+  main.appendChild(el(`<p class="note">Drugs you get wrong come up more often. Progress is kept on this device.</p>`));
+}
+
+function bugQ(){
+  let pool=ALLBUGS.filter(b=>b!==lastBug);
+  const b=pickWeighted(pool,x=>"b:"+x);lastBug=b;
+  const sel=new Set();let done=false;
+  const covering=DRUGS.filter(d=>d.set.has(b));
+  const c=el(`<div class="card">
+    <div class="q-label">Which drugs cover it? (tap all)</div>
+    <div class="q-title" style="font-style:italic;color:${BUGCOL[b]}">${BUG[b]}</div>
+    <div class="q-sub">${covering.length} of ${DRUGS.length} rows on the chart</div>
+    <div class="chips" id="g" style="margin-top:10px"></div>
+    <div class="verdict" id="v"></div>
+    <div class="why" id="why"></div>
+    <div class="row"><button class="btn alt" id="skip">Skip</button><button class="btn" id="go">Check</button></div>
+  </div>`);
+  const g=c.querySelector("#g");
+  DRUGS.forEach(d=>{
+    const ch=el(`<button class="chip drug" data-d="${d.id}">${d.n}</button>`);
+    ch.onclick=()=>{if(done)return;sel.has(d.id)?sel.delete(d.id):sel.add(d.id);ch.classList.toggle("sel")};
+    g.appendChild(ch);
+  });
+  const bugRules={mrsa:["R1"],mssa:["R1","R7"],strep:["R3","R11"],ecoli:["R2"],pmir:["R2"],kleb:["R7","R9"],pseud:["R8"],escappm:["R10"],ngon:["R9"],nmen:["R9"],anaer:["R4","R6"],atyp:["R5"]};
+  c.querySelector("#skip").onclick=bugQ;
+  c.querySelector("#go").onclick=()=>{
+    if(done){bugQ();window.scrollTo(0,0);return}
+    done=true;let wrong=0,miss=0;
+    g.querySelectorAll(".chip").forEach(ch=>{
+      const id=ch.dataset.d,y=DRUGS.find(x=>x.id===id).set.has(b),s=sel.has(id);ch.classList.remove("sel");
+      if(y&&s)ch.classList.add("ok");else if(!y&&s){ch.classList.add("bad");wrong++}else if(y&&!s){ch.classList.add("miss");miss++}
+    });
+    const perfect=!wrong&&!miss;record("b:"+b,perfect);
+    const v=c.querySelector("#v");v.textContent=perfect?"Spot on.":`${miss} missed, ${wrong} wrong.`;v.style.color=perfect?"var(--ok)":"var(--bad)";
+    const w=c.querySelector("#why");w.style.display="block";
+    w.innerHTML=`<b>Rules for this column</b>${bugRules[b].map(id=>`<div style="margin:6px 0"><a href="#" data-rule="${id}" style="color:inherit;font-weight:600">${RULEMAP[id].t}</a><div class="note">${RULEMAP[id].p[0]}</div></div>`).join("")}`;
+    wireRuleLinks(w);
+    c.querySelector("#go").textContent="Next";c.querySelector("#skip").style.display="none";
+  };
+  main.innerHTML="";main.appendChild(c);
+}
+
+function envelopeSVG(){return `<svg viewBox="0 0 340 150" width="100%" style="max-width:420px;display:block;margin:8px 0">
+ <text x="80" y="14" text-anchor="middle" font-size="12" font-weight="700" fill="var(--gp)">Gram +ve</text>
+ <text x="255" y="14" text-anchor="middle" font-size="12" font-weight="700" fill="var(--gnb)">Gram −ve</text>
+ <rect x="20" y="40" width="120" height="34" fill="#c9a86a" opacity=".8"/><text x="80" y="61" text-anchor="middle" font-size="10" fill="#000">thick peptidoglycan</text>
+ <rect x="20" y="78" width="120" height="10" fill="#8aa"/><text x="80" y="102" text-anchor="middle" font-size="9" fill="var(--mut)">cell membrane</text>
+ <rect x="190" y="30" width="130" height="10" fill="#d46"/>
+ <rect x="236" y="27" width="10" height="16" fill="var(--card)" stroke="#d46"/><text x="241" y="24" text-anchor="middle" font-size="8" fill="var(--mut)">porin</text>
+ <rect x="190" y="52" width="130" height="8" fill="#c9a86a" opacity=".8"/><text x="255" y="49" text-anchor="middle" font-size="8" fill="var(--mut)">outer membrane ↑ · thin PG ↓</text>
+ <rect x="190" y="78" width="130" height="10" fill="#8aa"/><text x="255" y="102" text-anchor="middle" font-size="9" fill="var(--mut)">cell membrane</text>
+ <circle cx="65" cy="128" r="11" fill="var(--gp)"/><text x="65" y="132" text-anchor="middle" font-size="8" fill="#fff">vanc</text>
+ <text x="85" y="132" font-size="9" fill="var(--mut)">gets to the wall fine</text>
+ <circle cx="214" cy="128" r="11" fill="var(--gp)"/><text x="214" y="132" text-anchor="middle" font-size="8" fill="#fff">vanc</text>
+ <text x="230" y="125" font-size="9" fill="var(--mut)">too big for the porin,</text><text x="230" y="137" font-size="9" fill="var(--mut)">stuck outside</text>
+ <circle cx="241" cy="9" r="0"/>
+ </svg>`}
+
+function rulesV(){
+  main.innerHTML="";
+  main.appendChild(el(`<div class="card"><div class="q-label">Where each drug hits</div>${targetSVG()}<p class="note" style="margin:4px 0 0">Everything on the chart is aimed at one of these: the wall, the ribosome, DNA, or the folate pathway. The off-chart extras are in the Classes tab.</p></div>`));
+  main.appendChild(el(`<div class="card"><div class="q-label">How to read the chart</div><p style="margin:6px 0 0;font-size:15px;line-height:1.5">Most bars are explained by three questions. What does the drug hit (wall, ribosome, DNA, folate)? Can it get through the Gram −ve outer membrane? Does the bug have an enzyme or protein that defeats it (PBP2a, beta-lactamase, AmpC)? Learn the rules, then each bar becomes a parent drug plus a tweak.</p></div>`));
+  RULES.forEach(r=>{
+    const box=el(`<div class="rule" id="${r.id}"><h3>${r.tags.map(t=>`<span class="tag" style="background:${TAGCOL[t]}">${TAGNAME[t]}</span>`).join("")} ${r.t}</h3>${r.p.map(x=>`<p>${x}</p>`).join("")}</div>`);
+    if(r.svg)box.insertBefore(el(envelopeSVG()),box.children[2]);
+    if(r.wall)box.appendChild(el(wallLineHTML()));
+    main.appendChild(box);
+  });
+  main.appendChild(el(`<p class="note">UK names: nafcillin/oxacillin ≈ flucloxacillin, Zosyn = Tazocin, TMP/SMX = co-trimoxazole. The chart is American, so cefotetan/cefoxitin and cefazolin are rare on UK wards. Always check your local guideline for actual prescribing.</p>`));
+}
+
+function runs(set){const out=[];let st=null;ALLBUGS.forEach((b,i)=>{if(set.has(b)){if(st===null)st=i}else if(st!==null){out.push([st,i]);st=null}});if(st!==null)out.push([st,12]);return out}
+function chartV(){
+  main.innerHTML="";
+  const top=el(`<div><label class="toggle"><input type="checkbox" id="hid"> Blank mode: tap a row to reveal its bar</label>
+    <p class="note" style="margin:-4px 0 10px">Otherwise tap any row to see why it covers what it does.</p></div>`);
+  main.appendChild(top);
+  const ab=el(`<div class="ab"></div>`);
+  // header
+  let gb="",bl="";let col=1;
+  GROUPS.forEach(g=>{gb+=`<div class="gband" style="grid-column:${col}/span ${g.bugs.length};background:${g.col}">${g.s}</div>`;col+=g.bugs.length});
+  ALLBUGS.forEach(b=>bl+=`<div><div class="blab">${BUG[b]}</div></div>`);
+  ab.appendChild(el(`<div class="abhead"><div class="abname" style="align-self:end;color:var(--mut);font-size:12px;font-weight:500">Grouped by class</div><div><div class="grid12">${gb}</div><div class="grid12" style="margin-top:3px">${bl}</div></div></div>`));
+  let lastK=null;
+  DRUGS.forEach(d=>{
+    const c=CLS[d.k];
+    if(d.k!==lastK){ab.appendChild(el(`<div class="clhead"><span class="dot" style="background:${c.col}"></span>${c.n} <em>${c.stem}</em></div>`));lastK=d.k}
+    let cells="";ALLBUGS.forEach((b,i)=>cells+=`<div class="cell" style="grid-column:${i+1};background:color-mix(in srgb, ${BUGCOL[b]} 9%, transparent)"></div>`);
+    let segs=runs(d.set).map(([a,z])=>`<div class="seg" style="grid-column:${a+1}/${z+1};background:${c.col}"></div>`).join("");
+    const nm=d.n.replace("Gentamicin / Tobramycin / Amikacin","Gent / Tobra / Amikacin");
+    const row=el(`<div class="abrow" style="--sc:${c.col}"><div class="abname">${nm}<small>${(d.c.match(/\((.*)\)/)||["",""])[1]}</small></div><div class="track grid12">${cells}${segs}</div><div class="abwhy">${d.w}</div></div>`);
+    row.onclick=()=>{if(ab.classList.contains("blank"))row.classList.add("rev");else row.classList.toggle("open")};
+    ab.appendChild(row);
+  });
+  main.appendChild(ab);
+  main.appendChild(el(`<p class="note">Transcribed from the aetherist antibiogram chart. For learning, not prescribing.</p>`));
+  const hid=top.querySelector("#hid");
+  hid.onchange=()=>{ab.classList.toggle("blank",hid.checked);ab.querySelectorAll(".rev,.open").forEach(x=>x.classList.remove("rev","open"))};
+}
+
+function targetSVG(){
+  const ink="var(--ink)",mut="var(--mut)";
+  const lab=(x,y,t,b,anchor)=>`<text x="${x}" y="${y}" font-size="10.5" font-weight="700" fill="${ink}" text-anchor="${anchor||"start"}">${t}</text><text x="${x}" y="${y+12}" font-size="9.5" fill="${mut}" text-anchor="${anchor||"start"}">${b}</text>`;
+  return `<svg viewBox="0 0 360 330" width="100%" style="max-width:460px;display:block;margin:6px auto">
+  <text x="180" y="14" text-anchor="middle" font-size="10.5" font-weight="700" fill="${ink}">WALL</text>
+  <text x="180" y="26" text-anchor="middle" font-size="9.5" fill="${mut}">β-lactams · vancomycin · fosfomycin · cycloserine · bacitracin</text>
+  <rect x="14" y="36" width="332" height="250" rx="48" fill="none" stroke="#c9a86a" stroke-width="9"/>
+  <rect x="25" y="47" width="310" height="228" rx="40" fill="var(--bg)" stroke="#7fa7a7" stroke-width="3"/>
+  <text x="180" y="304" text-anchor="middle" font-size="10.5" font-weight="700" fill="${ink}">MEMBRANE</text>
+  <text x="180" y="317" text-anchor="middle" font-size="9.5" fill="${mut}">polymyxins (colistin): detergents</text>
+  <path d="M60 110 q15 -22 30 0 t30 0 t30 0 M60 122 q15 22 30 0 t30 0 t30 0" fill="none" stroke="${CLS.quin.col}" stroke-width="3"/>
+  ${lab(48,150,"DNA","gyrase / topo IV → quinolones")}
+  <text x="48" y="174" font-size="9.5" fill="${mut}">radicals → metronidazole</text>
+  <circle cx="190" cy="94" r="11" fill="${CLS.rif.col}"/><text x="190" y="97.5" text-anchor="middle" font-size="7.5" fill="#fff">pol</text>
+  ${lab(207,90,"RNA polymerase","→ rifampicin")}
+  <ellipse cx="270" cy="165" rx="38" ry="22" fill="${CLS.mac.col}" fill-opacity=".85"/><text x="270" y="169" text-anchor="middle" font-size="10" font-weight="700" fill="#000">50S</text>
+  <ellipse cx="270" cy="196" rx="28" ry="13" fill="${CLS.tet.col}" fill-opacity=".85"/><text x="270" y="200" text-anchor="middle" font-size="9" font-weight="700" fill="#000">30S</text>
+  <text x="212" y="122" font-size="9.5" fill="${mut}">50S: macrolides, clinda,</text>
+  <text x="212" y="134" font-size="9.5" fill="${mut}">chloramphenicol,</text>
+  <text x="212" y="146" font-size="9.5" fill="${mut}">linezolid, streptogramins</text>
+  <text x="218" y="226" font-size="9.5" fill="${mut}">30S: aminoglycosides,</text>
+  <text x="218" y="238" font-size="9.5" fill="${mut}">tetracyclines</text>
+  <text x="218" y="254" font-size="9.5" fill="${mut}">EF-G: fusidic acid</text>
+  <text x="48" y="214" font-size="10.5" font-weight="700" fill="${ink}">FOLATE</text>
+  <text x="48" y="230" font-size="10" fill="${ink}">PABA → DHF → THF</text>
+  <text x="62" y="246" font-size="9.5" fill="${CLS.anti.col}" font-weight="700">↑ sulfa</text>
+  <text x="122" y="246" font-size="9.5" fill="${CLS.anti.col}" font-weight="700">↑ TMP</text>
+  </svg>`;
+}
+function wallLineHTML(){
+  const step=(zone,zc,t,drug,dc)=>`<div style="display:flex;gap:8px;align-items:stretch;margin:4px 0">
+   <div style="width:74px;flex:none;font-size:10.5px;font-weight:700;color:#fff;background:${zc};border-radius:7px;display:flex;align-items:center;justify-content:center;text-align:center;padding:4px">${zone}</div>
+   <div style="flex:1;background:var(--bg);border-radius:7px;padding:7px 9px;font-size:13.5px;line-height:1.35">${t}${drug?`<div style="margin-top:4px"><span style="display:inline-block;background:${dc};color:#fff;font-size:12px;font-weight:700;border-radius:10px;padding:2px 8px">✕ ${drug}</span></div>`:""}</div></div>`;
+  const cy="#6c757d",me="#7fa7a7",out="#c9a86a";
+  return `<div style="margin:10px 0 4px"><div class="q-label" style="margin-bottom:4px">The wall assembly line, and where each drug jams it</div>
+  ${step("Cytoplasm",cy,"UDP-NAG is turned into NAM (the first committed step, MurA).","fosfomycin",CLS.fosfo.col)}
+  ${step("Cytoplasm",cy,"A peptide is added to NAM, finishing with D-Ala-D-Ala.","cycloserine (fake D-Ala)",CLS.wallx.col)}
+  ${step("Membrane",me,"The C55 lipid carrier flips the NAM-NAG building block across, then has to be recycled.","bacitracin",CLS.wallx.col)}
+  ${step("Outside",out,"Transglycosylase joins the sugars into chains. Vancomycin sits on the D-Ala-D-Ala tail so the block can't be used.","vancomycin",CLS.glyc.col)}
+  ${step("Outside",out,"Transpeptidase (the PBP) cross-links the peptide chains, chopping off the last D-Ala.","β-lactams",CLS.pen.col)}
+  </div>`;
+}
+
+const SCOPES={chart:"Chart drugs",abx:"All antibacterials",all:"Everything (+ viral, fungal, protozoal)"};
+const GRPNAME={chart:"On the chart",abx:"Other antibacterials",virus:"Antivirals",fungus:"Antifungals",protozoa:"Antiprotozoals"};
+function inScope(g){return CSCOPE==="all"||(CSCOPE==="abx"?(g==="chart"||g==="abx"):g==="chart")}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function classesV(){
+  main.innerHTML="";
+  const sc=el(`<div class="filter" style="margin-top:0">${Object.entries(SCOPES).map(([k,v])=>`<button data-s="${k}" class="${k===CSCOPE?"on":""}">${v}</button>`).join("")}</div>`);
+  sc.querySelectorAll("button").forEach(b=>b.onclick=()=>{CSCOPE=b.dataset.s;try{localStorage.setItem("abx-cscope",CSCOPE)}catch(e){}classesV()});
+  main.appendChild(sc);
+  let pool=EXTRA.concat(DRUGS.map(d=>[d.n,d.k]));
+  if(CSCOPE!=="chart")pool=pool.concat(EXTRA2);
+  if(CSCOPE==="all")pool=pool.concat(EXTRA3);
+  const scopeClasses=CLASSES.filter(c=>inScope(c.grp));
+  let last=null;
+  function q(){
+    let it;do{it=pickWeighted(pool,x=>"c:"+x[0])}while(it===last&&pool.length>1);last=it;
+    const right=CLS[it[1]];
+    // distractors: favour same group so it's not too easy
+    const same=shuffle(scopeClasses.filter(c=>c.k!==right.k&&c.grp===right.grp));
+    const other=shuffle(scopeClasses.filter(c=>c.k!==right.k&&c.grp!==right.grp));
+    const opts=shuffle([right].concat(same.slice(0,4),other).slice(0,6));
+    const card=el(`<div class="card" style="margin-top:10px"><div class="q-label">Which class?</div><div class="q-title">${it[0]}</div><div class="opts"></div><div class="why" id="w"></div><div class="row" style="display:none" id="nx"><button class="btn">Next</button></div></div>`);
+    const o=card.querySelector(".opts");let done=false;
+    opts.forEach(c=>{const b=el(`<button class="opt"><span class="dot" style="background:${c.col}"></span>${c.n.replace(" combos","").replace(" (folate)","")}</button>`);
+      b.dataset.k=c.k;
+      b.onclick=()=>{if(done)return;done=true;const ok=c.k===right.k;record("c:"+it[0],ok);
+        b.classList.add(ok?"ok":"bad");if(!ok)o.querySelector(`[data-k="${right.k}"]`).classList.add("ok");
+        const w=card.querySelector("#w");w.style.display="block";
+        w.innerHTML=`<b>${ok?"Yes.":"It's "+right.n.toLowerCase()+"."} Look for <span class="stem">${right.stem}</span></b>${right.why}${right.moa?`<div style="margin-top:6px"><span class="stem">${right.hit}</span> ${right.moa}</div>`:""}`;
+        card.querySelector("#nx").style.display="flex"};
+      o.appendChild(b)});
+    card.querySelector("#nx button").onclick=()=>{card.replaceWith(q());window.scrollTo(0,0)};
+    return card;
+  }
+  main.appendChild(q());
+  main.appendChild(el(`<div class="card"><div class="q-label">The big split</div>
+    <p style="margin:6px 0;font-size:15px;line-height:1.5">The first five classes are all beta-lactams. They share one four-membered ring, and what's fused onto it tells you the family. Everything else on the chart hits something other than the wall.</p>${lactamSVG()}
+    <p class="note">The <span class="stem">-mycin</span> trap: it only tells you the drug came from a soil Streptomyces, so it turns up in four classes. <span class="stem">-thromycin</span> is a macrolide, clinda/linco is a lincosamide, vanco is a glycopeptide, and the rest (strepto, neo, tobra, genta-<i>micin</i>) are aminoglycosides.</p>
+    <p class="note">The <span class="stem">-azole</span> trap: metro<b>nidazole</b> is antibacterial, the <b>-conazole</b>s are antifungal, and line<b>zolid</b> is antibacterial again.</p></div>`));
+  ["chart","abx","virus","fungus","protozoa"].filter(inScope).forEach(g=>{
+    main.appendChild(el(`<div class="clhead" style="margin:18px 2px 8px"><span class="dot" style="background:var(--ink)"></span>${GRPNAME[g]}</div>`));
+    CLASSES.filter(c=>c.grp===g).forEach(c=>main.appendChild(el(`<div class="cls-card" style="--cc:${c.col}"><h3>${c.n} <span class="stem">${c.stem}</span></h3><p>${c.why}</p>${c.moa?`<p><span class="stem" style="background:${c.col};color:#fff;border-color:${c.col}">${c.hit}</span> ${c.moa}</p>`:""}${c.tip?`<p>${c.tip}</p>`:""}<p class="eg">${c.eg}</p></div>`)));
+  });
+}
+
+function lactamSVG(){
+  const ink="var(--ink)",mut="var(--mut)";
+  const sq=(x,y,c)=>`<rect x="${x}" y="${y}" width="30" height="30" fill="${c}" fill-opacity=".25" stroke="${c}" stroke-width="2"/><text x="${x+15}" y="${y+19}" text-anchor="middle" font-size="9" fill="${ink}">β-L</text>`;
+  const pent=(x,y,c,lab)=>`<polygon points="${x},${y} ${x+26},${y-6} ${x+38},${y+15} ${x+26},${y+36} ${x},${y+30}" fill="${c}" fill-opacity=".12" stroke="${c}" stroke-width="2"/><text x="${x+20}" y="${y+19}" text-anchor="middle" font-size="10" font-weight="700" fill="${ink}">${lab}</text>`;
+  const hex=(x,y,c,lab)=>`<polygon points="${x},${y} ${x+20},${y-10} ${x+40},${y} ${x+40},${y+30} ${x+20},${y+40} ${x},${y+30}" fill="${c}" fill-opacity=".12" stroke="${c}" stroke-width="2"/><text x="${x+20}" y="${y+19}" text-anchor="middle" font-size="10" font-weight="700" fill="${ink}">${lab}</text>`;
+  const cap=(x,t1,t2)=>`<text x="${x}" y="98" text-anchor="middle" font-size="11" font-weight="700" fill="${ink}">${t1}</text><text x="${x}" y="112" text-anchor="middle" font-size="9.5" fill="${mut}">${t2}</text>`;
+  return `<svg viewBox="0 0 360 120" width="100%" style="max-width:480px;display:block;margin:6px 0 8px">
+   ${sq(10,30,CLS.pen.col)}${pent(40,30,CLS.pen.col,"S")}${cap(42,"Penicillin","+ 5-ring with S")}
+   ${sq(100,30,CLS.ceph.col)}${hex(130,30,CLS.ceph.col,"S")}${cap(135,"Cephalosporin","+ 6-ring with S")}
+   ${sq(195,30,CLS.carb.col)}${pent(225,30,CLS.carb.col,"C")}${cap(228,"Carbapenem","S swapped for C")}
+   ${sq(300,30,CLS.mono.col)}${cap(315,"Monobactam","ring on its own")}
+  </svg>`;
+}
+
+render();
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+</script>
+</body>
+</html>
