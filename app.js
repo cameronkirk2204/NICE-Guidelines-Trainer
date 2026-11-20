@@ -1,4 +1,4 @@
-/* Pathways trainer: home, walk-a-case, map, quick-fire, progress. Offline, no dependencies. */
+/* Critical Care Companion: home, walk-a-case, map, quick-fire, progress. Offline, no dependencies. */
 (function(){
 const PW = window.PATHWAYS || [];
 PW.forEach(p => { const fw = (window.FORK_WHY||{})[p.id] || {}, nw = (window.NODE_WHY||{})[p.id] || {};
