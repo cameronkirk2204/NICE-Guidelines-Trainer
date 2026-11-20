@@ -4,9 +4,7 @@ const PW = window.PATHWAYS || [];
 PW.forEach(p => { const fw = (window.FORK_WHY||{})[p.id] || {}, nw = (window.NODE_WHY||{})[p.id] || {};
   for (const [id, n] of Object.entries(p.nodes)){ if (n.fork && fw[id]) n.fork.forEach((f, i) => { if (fw[id][i]) f.w = fw[id][i]; }); if (!n.why && nw[id]) n.why = nw[id]; } });
 const PWMAP = {}; PW.forEach(p => PWMAP[p.id] = p);
-const SOON = [
-  {n:"Advanced life support",c:"#c2302b"},
-  {n:"Acute asthma",c:"#4f8fe0"},{n:"Anaphylaxis",c:"#8b6fd6"},{n:"Sepsis 6",c:"#b7791f"}];
+
 
 /* ---------- storage ---------- */
 const KEY = "gt-progress-v1";
@@ -91,9 +89,11 @@ function nodeBox(n, extra){
 
 /* ---------- shell ---------- */
 const bar = document.getElementById("bar"), main = document.getElementById("main");
-function setBar(title, back, meta){
-  bar.innerHTML = `${back?'<button class="back" aria-label="Back">‹</button>':""}<h1>${title}</h1>${meta?`<span class="meta">${meta}</span>`:""}`;
+function setBar(title, back, meta, top){
+  bar.className = "bar" + (top ? " top" : "");
+  bar.innerHTML = `${back?'<button class="back" aria-label="Back">‹</button>':(top?'<span class="logo">'+ico("acs",18)+'</span>':"")}<h1>${title}</h1>${meta?`<span class="meta">${meta}</span>`:""}`;
   if (back) bar.querySelector(".back").onclick = () => { location.hash = back; };
+  if (!top && typeof tabbar === "function") tabbar(null);
 }
 function scrollEnd(){ requestAnimationFrame(() => window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"})); }
 function route(){
@@ -102,6 +102,7 @@ function route(){
   window.scrollTo(0, 0);
   if (!h || h === "home") return home();
   if (h === "today") return quick(null);
+  if (h === "progress") return progress();
   if (h === "backup") return backup();
   const pw = PWMAP[parts[0]];
   if (!pw) return home();
@@ -115,43 +116,95 @@ function route(){
 }
 window.addEventListener("hashchange", route);
 
+const ICON = {
+  acs:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5 12h3l1.5-2.5 2.5 5 1.5-2.5H19"/>',
+  pe:'<path d="M12 3v8"/><path d="M12 11c-1.5 0-2.5 1-3.5 2.5S6.5 20 4.5 20 3 14 4 10s3-6 5-6"/><path d="M12 11c1.5 0 2.5 1 3.5 2.5s2 6.5 4 6.5 1.5-6 .5-10-3-6-5-6"/>',
+  asthma:'<path d="M12 3v8"/><path d="M12 11c-1.5 0-2.5 1-3.5 2.5S6.5 20 4.5 20 3 14 4 10s3-6 5-6"/><path d="M12 11c1.5 0 2.5 1 3.5 2.5s2 6.5 4 6.5 1.5-6 .5-10-3-6-5-6"/><path d="M8 9l-2 2M16 9l2 2"/>',
+  als:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+  anaph:'<path d="M18 2l4 4M17 7l3-3M19 9l-9 9-4 1 1-4 9-9zM5 19l-3 3M14 6l4 4"/>',
+  sepsis:'<path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/><path d="M12 9v7"/>',
+  dvt:'<path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+  vte:'<path d="M10.5 20.5a5 5 0 0 1-7-7l10-10a5 5 0 0 1 7 7z"/><path d="M8.5 8.5l7 7"/>',
+  abx:'<circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>'
+};
+const ico = (id, size) => `<svg class="ico" width="${size||22}" height="${size||22}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[id]||ICON.abx}</svg>`;
+const GROUPS = [
+  {n:"Resus and the sick patient", ids:["als","anaph","sepsis"]},
+  {n:"Cardiac and respiratory", ids:["acs","pe","asthma"]},
+  {n:"Clots", ids:["dvt","vte"]},
+  {n:"Microbiology", ids:["abx"]}
+];
+const ECG = `<svg class="ecg" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 34h70l8-10 8 10h20l6 4 8-30 9 44 7-18h22l10-8 12 8h60l8-10 8 10h20l6 4 8-30 9 44 7-18h22l10-8 12 8h34" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
+function abxStats(){ try { const a = JSON.parse(localStorage.getItem("abx-trainer")||"null"); if (a && a.total) return a; } catch(e){} return null; }
+function tabbar(active){
+  let t = document.getElementById("tabs");
+  if (!t){ t = el(`<nav id="tabs" class="tabs"></nav>`); document.body.appendChild(t); }
+  const tabs = [["home","Home",'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],["today","Today",'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'],["progress","Progress",'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'],["backup","Backup",'<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>']];
+  t.innerHTML = tabs.map(([h, l, p]) => `<a href="#${h}" class="${active === h ? "on" : ""}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg><span>${l}</span></a>`).join("");
+  t.style.display = active ? "" : "none";
+}
+
 /* ---------- home ---------- */
 function home(){
   const s = streak();
-  setBar("Pathways", null, s ? `🔥 ${s} day${s>1?"s":""}` : "");
+  setBar("Critical Care Companion", null, "", true);
+  tabbar("home");
   const due = PW.reduce((a, p) => a + dueCount(p), 0);
-  let abx = ""; try { const a = JSON.parse(localStorage.getItem("abx-trainer")||"null"); if (a && a.total) abx = `${Math.round(100*a.right/a.total)}% right · ${a.total} answered`; } catch(e){}
+  const all = PW.reduce((a, p) => a + mastery(p), 0) / (PW.length || 1);
+  const hr = new Date().getHours(), greet = hr < 12 ? "Morning" : hr < 18 ? "Afternoon" : "Evening";
   main.innerHTML = "";
-  main.appendChild(el(`<div class="card"><div class="lbl">Today</div>
-    <div class="big">${due ? due+" step"+(due>1?"s":"")+" due" : "Nothing due"}</div>
-    <div class="note">${due ? "Quick-fire through the steps you're due to see again." : "Walk a case to put new steps into rotation."}</div>
-    ${due ? '<a class="btn" href="#today" style="margin-top:12px">Start quick-fire</a>' : ""}</div>`));
-  const tiles = el(`<div class="tiles"></div>`);
-  PW.forEach(p => {
-    const m = mastery(p);
-    tiles.appendChild(el(`<a class="tile" href="#${p.id}"><span class="ring">${ring(m, p.color)}</span><span class="tag" style="background:${p.color}">${p.tag}</span><span class="tn">${p.title}</span><span class="ts">${endsSeen(p)}/${endsOf(p).length} routes seen</span></a>`));
+  main.appendChild(el(`<div class="hero"><div class="hero-top"><div><div class="hero-k">${greet}</div><div class="hero-t">Ready for the next case?</div></div><div class="hero-ring">${ring(all, "#ffffff", 58)}</div></div>
+    <div class="hero-stats"><div><b>${s}</b><span>day streak</span></div><div><b>${due}</b><span>due today</span></div><div><b>${PW.reduce((a,p)=>a+endsSeen(p),0)}/${PW.reduce((a,p)=>a+endsOf(p).length,0)}</b><span>routes seen</span></div></div>
+    ${due ? `<a class="hero-btn" href="#today">Start today's quick-fire →</a>` : `<a class="hero-btn" href="#${(PW.slice().sort((a,b)=>mastery(a)-mastery(b))[0]||{}).id}-walk">Walk a case in your weakest topic →</a>`}${ECG}</div>`));
+  GROUPS.forEach(g => {
+    main.appendChild(el(`<div class="sec">${g.n}</div>`));
+    const tiles = el(`<div class="tiles"></div>`);
+    g.ids.forEach(id => {
+      if (id === "abx"){ const a = abxStats(); tiles.appendChild(el(`<a class="tile" href="abx.html" style="--c:#2f9e6b"><span class="ti">${ico("abx")}</span><span class="tn">Antibiotics</span><span class="ts">${a ? Math.round(100*a.right/a.total)+"% right · "+a.total+" answered" : "Coverage, classes and mechanisms"}</span><span class="tbar"><i style="width:${a?Math.round(100*a.right/a.total):0}%"></i></span></a>`)); return; }
+      const p = PWMAP[id]; if (!p) return;
+      const m = mastery(p), d = dueCount(p);
+      tiles.appendChild(el(`<a class="tile" href="#${p.id}" style="--c:${p.color}"><span class="ti">${ico(p.id)}</span>${d?`<span class="due">${d}</span>`:""}<span class="tn">${p.title}</span><span class="ts">${endsSeen(p)}/${endsOf(p).length} routes · ${p.cases.length} cases</span><span class="tbar"><i style="width:${Math.round(m*100)}%"></i></span></a>`));
+    });
+    main.appendChild(tiles);
   });
-  tiles.appendChild(el(`<a class="tile" href="abx.html"><span class="tag" style="background:#4fae73">Micro</span><span class="tn">Antibiotics</span><span class="ts">${abx || "Coverage, classes, mechanisms"}</span></a>`));
-  SOON.forEach(x => tiles.appendChild(el(`<div class="tile soon"><span class="tag" style="background:${x.c}">Soon</span><span class="tn">${x.n}</span><span class="ts">Coming next</span></div>`)));
-  main.appendChild(tiles);
-  main.appendChild(el(`<div style="margin-top:18px"><a class="btn alt" href="#backup">Back up or restore progress</a></div>`));
-  main.appendChild(el(`<p class="note" style="margin-top:14px">For learning, not prescribing. Based on NICE and Resuscitation Council UK guidance; always check your local guidelines.</p>`));
+  main.appendChild(el(`<p class="note" style="margin-top:20px;text-align:center">For learning, not prescribing. Built on NICE, RCUK and BTS/SIGN guidance; always check your local guidelines.</p>`));
+}
+
+/* ---------- progress ---------- */
+function progress(){
+  setBar("Progress", null, "", true); tabbar("progress");
+  main.innerHTML = "";
+  const s = streak(), days = [];
+  for (let i = 13; i >= 0; i--){ const d = new Date(); d.setDate(d.getDate() - i); const k = d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); days.push([k, P.days.includes(k), "MTWTFSS"[(d.getDay()+6)%7]]); }
+  main.appendChild(el(`<div class="card"><div class="lbl">Last two weeks</div><div class="days">${days.map(([k, on, l]) => `<div class="${on?"on":""}"><i></i><span>${l}</span></div>`).join("")}</div><div class="note" style="margin-top:8px">${s ? `${s}-day streak. Keep it going.` : "Do one case today to start a streak."}</div></div>`));
+  const c = el(`<div class="card"><div class="lbl">Mastery by topic</div></div>`);
+  PW.forEach(p => { const m = mastery(p); c.appendChild(el(`<a class="prow" href="#${p.id}" style="--c:${p.color}"><span class="ti sm">${ico(p.id, 18)}</span><span class="pn">${p.short}</span><span class="pbar"><i style="width:${Math.round(m*100)}%"></i></span><b>${Math.round(m*100)}%</b></a>`)); });
+  const a = abxStats(); c.appendChild(el(`<a class="prow" href="abx.html" style="--c:#2f9e6b"><span class="ti sm">${ico("abx", 18)}</span><span class="pn">Antibiotics</span><span class="pbar"><i style="width:${a?Math.round(100*a.right/a.total):0}%"></i></span><b>${a?Math.round(100*a.right/a.total)+"%":"–"}</b></a>`));
+  main.appendChild(c);
+  const weak = [];
+  PW.forEach(p => items(p).forEach(it => { const st = P.items[it.key]; if (st && st.w) weak.push({p, it, st}); }));
+  weak.sort((x, y) => (x.st.b - y.st.b) || (y.st.w - x.st.w));
+  const w = el(`<div class="card"><div class="lbl">Steps you miss most</div></div>`);
+  if (!weak.length) w.appendChild(el(`<div class="note">Nothing yet. Steps you get wrong will show up here.</div>`));
+  weak.slice(0, 8).forEach(({p, it, st}) => { const n = p.nodes[it.node]; const lab = it.type === "edge" ? `${n.t} → ${n.fork[it.i].l}` : n.t; w.appendChild(el(`<a class="wrow" href="#${p.id}-quick"><span class="wdot" style="background:${p.color}"></span><span><b>${lab}</b><small>${p.short} · missed ${st.w}×</small></span></a>`)); });
+  if (weak.length) w.appendChild(el(`<a class="btn" href="#today" style="margin-top:12px">Drill what's due</a>`));
+  main.appendChild(w);
 }
 
 /* ---------- pathway hub ---------- */
 function pathway(pw){
-  setBar(pw.title, "home");
+  setBar(pw.short, "home");
   const m = mastery(pw), due = dueCount(pw), its = items(pw);
   const seen = its.filter(it => P.items[it.key]).length;
   main.innerHTML = "";
-  main.appendChild(el(`<div class="card" style="display:flex;gap:14px;align-items:center">${ring(m, pw.color, 64)}<div><div class="big" style="font-size:18px">${pw.title}</div><div class="note">${pw.blurb}</div></div></div>`));
+  main.appendChild(el(`<div class="phero" style="--c:${pw.color}"><div class="phero-i">${ico(pw.id, 30)}</div><div style="flex:1"><div class="phero-t">${pw.title}</div><div class="phero-b">${pw.blurb}</div></div><div>${ring(m, "#ffffff", 56)}</div></div>`));
   main.appendChild(el(`<div class="stat"><div><b>${endsSeen(pw)}/${endsOf(pw).length}</b><span>routes seen</span></div><div><b>${seen}/${its.length}</b><span>steps tried</span></div><div><b>${due}</b><span>due now</span></div></div>`));
   const nh = pw.cases.filter(c => c.hard).length, nn = pw.cases.length - nh;
   main.appendChild(el(`<a class="btn" href="#${pw.id}-walk">Walk a case <span style="opacity:.6;font-weight:400">· ${nn}</span></a>`));
-  if (nh) main.appendChild(el(`<a class="btn" href="#${pw.id}-hard" style="margin-top:8px;background:#c2302b;color:#fff">Hard cases <span style="opacity:.75;font-weight:400">· ${nh}</span></a>`));
-  const r = el(`<div class="row" style="margin-top:8px"><a class="btn alt" href="#${pw.id}-learn">Learn</a><a class="btn alt" href="#${pw.id}-quick">Quick-fire</a><a class="btn alt" href="#${pw.id}-map">Map</a></div>`);
+  if (nh) main.appendChild(el(`<a class="btn hard" href="#${pw.id}-hard">Hard cases <span style="opacity:.75;font-weight:400">· ${nh}</span></a>`));
+  const r = el(`<div class="modes"><a href="#${pw.id}-learn"><b>Learn</b><span>explore freely</span></a><a href="#${pw.id}-quick"><b>Quick-fire</b><span>${due ? due + " due" : "single steps"}</span></a><a href="#${pw.id}-map"><b>Map</b><span>whole tree</span></a></div>`);
   main.appendChild(r);
-  main.appendChild(el(`<p class="note" style="margin-top:14px"><b>Walk a case</b> starts from a patient and builds the tree as you go. <b>Learn</b> lets you explore any branch with no marking. <b>Quick-fire</b> drills single steps out of order. <b>Map</b> shows the whole tree, coloured by how well you know each step.</p>`));
+  main.appendChild(el(`<p class="note" style="margin-top:14px;display:none"><b>Walk a case</b> starts from a patient and builds the tree as you go. <b>Learn</b> lets you explore any branch with no marking. <b>Quick-fire</b> drills single steps out of order. <b>Map</b> shows the whole tree, coloured by how well you know each step.</p>`));
   if (pw.diagrams && pw.diagrams.length){
     main.appendChild(el(`<div class="lbl" style="margin:20px 2px 8px">Diagrams</div>`));
     pw.diagrams.forEach(d => main.appendChild(el(`<div class="card dg"><div style="font-weight:700;margin-bottom:8px">${d.t}</div>${d.svg}${d.cap?`<div class="note" style="margin-top:8px">${d.cap}</div>`:""}</div>`)));
@@ -352,7 +405,7 @@ function buildQ(it){
 }
 function quick(pw){
   const pws = pw ? [pw] : PW;
-  setBar(pw ? "Quick-fire · " + pw.short : "Today", pw ? pw.id : "home");
+  setBar(pw ? "Quick-fire · " + pw.short : "Today", pw ? pw.id : null, "", !pw); if (!pw) tabbar("today");
   const now = Date.now();
   let all = []; pws.forEach(p => all = all.concat(items(p)));
   const due = shuffle(all.filter(it => P.items[it.key] && P.items[it.key].d <= now));
@@ -392,7 +445,7 @@ function quick(pw){
 
 /* ---------- backup ---------- */
 function backup(){
-  setBar("Back up progress", "home");
+  setBar("Backup", null, "", true); tabbar("backup");
   main.innerHTML = "";
   const data = () => JSON.stringify({gt:P, abx:(function(){ try { return JSON.parse(localStorage.getItem("abx-trainer")||"null"); } catch(e){ return null; } })(), at:new Date().toISOString()});
   const c = el(`<div class="card"><div class="lbl">Why</div><div class="note">Your progress lives on this phone only. If Chrome's site data gets cleared, it goes. Save a backup now and then.</div>

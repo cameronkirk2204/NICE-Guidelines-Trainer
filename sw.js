@@ -1,7 +1,7 @@
 // Offline support. Online: always fetch the latest files (network first), and keep a copy.
 // Offline: serve the saved copy. Bump VERSION when you change the file list.
-const VERSION = "gt-v8";
-const FILES = ["./", "index.html", "app.js", "pathways/acs.js", "pathways/pe.js", "pathways/dvt.js", "pathways/whys.js", "abx.html", "manifest.webmanifest",
+const VERSION = "ccc-v2";
+const FILES = ["./", "index.html", "app.js", "pathways/acs.js", "pathways/pe.js", "pathways/dvt.js", "pathways/als.js", "pathways/asthma.js", "pathways/anaph.js", "pathways/sepsis.js", "pathways/whys.js", "abx.html", "manifest.webmanifest",
   "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-512-maskable.png"];
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES.map(f => new Request(f, {cache: "reload"})))).then(() => self.skipWaiting()));

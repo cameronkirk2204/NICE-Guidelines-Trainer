@@ -59,6 +59,45 @@ window.FORK_WHY = {
            "Whatever caused it is still there, so clots often come back when you stop. Weigh that against bleeding risk."]
   }
 };
+
+Object.assign(window.FORK_WHY, {
+  als: {
+    rhythm: ["VF and pulseless VT are chaotic or very fast electrical activity with no output. A shock can reset them, so defibrillation is the treatment.",
+             "PEA and asystole have nothing to shock: either no electrical activity, or organised activity with no output. Shocking won't help, so it's CPR, adrenaline and finding the cause."],
+    rosc: ["Signs of life, a pulse and a jump in ETCO₂: the heart is pumping again. Now protect the brain and treat the cause.",
+           "Still no output, so carry on with 2-minute loops, adrenaline every 3–5 minutes, and keep working through the reversible causes."],
+    stq: ["ST elevation after ROSC points to a blocked coronary, and opening it treats the cause of the arrest.",
+          "No ST elevation, so the cause may be elsewhere: PE, a bleed in the head, an electrolyte problem, a toxin. Look before assuming it's cardiac."]
+  },
+  asthma: {
+    lt: ["Any one life-threatening feature means the attack could kill. Senior and ICU help now, and an ABG.",
+         "No life-threatening features, so now look for acute severe ones."],
+    tire: ["A rising PaCO₂, exhaustion or drowsiness means they can't keep up the work of breathing. They need ventilating before they stop.",
+           "Improving gases and an alert patient: keep treating and watch closely."],
+    sev: ["Any one acute severe feature means a big attack: nebulised treatment and close review.",
+          "No severe features, so it's a moderate attack."],
+    pef: ["Back above 75% and settled after an hour: the attack has turned, and home with steroids and a plan is reasonable.",
+          "Not back to 75%, or still struggling: keep treating in hospital."]
+  },
+  anaph: {
+    abc: ["An airway, breathing or circulation problem after a trigger is anaphylaxis. Adrenaline now, without waiting for skin signs.",
+          "Skin or gut symptoms alone aren't anaphylaxis. Treat the symptoms and keep watching for ABC problems."],
+    five: ["The first dose hasn't worked enough, so repeat it. Adrenaline is short-acting and many reactions need a second dose.",
+           "Responded to one dose: observe, because symptoms can come back."],
+    ref: ["Two doses haven't worked, which makes it refractory anaphylaxis. Bolus doses alone won't hold it, so it's an infusion and expert help.",
+          "The second dose has worked, but needing two means a longer observation period."]
+  },
+  sepsis: {
+    n7: ["NEWS2 7 or more is high risk: senior review and the Sepsis 6 within the hour.",
+         "Under 7, so look at which band they're in."],
+    shk: ["No response to fluid means septic shock: the vessels are too dilated and leaky for fluid alone. Get critical care involved for vasopressors.",
+          "Responding to fluid and antibiotics: keep a close eye, and find and control the source."],
+    n56: ["NEWS2 5 or 6 is moderate risk, but check for anything that would make it high risk.",
+          "NEWS2 1–4 is low risk on the numbers. Use judgement."],
+    red: ["A single parameter scoring 3, or lactate over 2 or an AKI, means organs are already struggling. Manage as high risk.",
+          "No red flags, so moderate risk: you have up to 3 hours to give antibiotics while you pin down the diagnosis."]
+  }
+});
 /* Extra notes for steps that didn't have one */
 window.NODE_WHY = {
   acs: {
