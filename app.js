@@ -2,7 +2,8 @@
 (function(){
 const PW = window.PATHWAYS || [];
 PW.forEach(p => { const fw = (window.FORK_WHY||{})[p.id] || {}, nw = (window.NODE_WHY||{})[p.id] || {};
-  for (const [id, n] of Object.entries(p.nodes)){ if (n.fork && fw[id]) n.fork.forEach((f, i) => { if (fw[id][i]) f.w = fw[id][i]; }); if (!n.why && nw[id]) n.why = nw[id]; } });
+  const mw = (window.MECH||{})[p.id] || {};
+  for (const [id, n] of Object.entries(p.nodes)){ if (mw[id]) n.mech = mw[id]; if (n.fork && fw[id]) n.fork.forEach((f, i) => { if (fw[id][i]) f.w = fw[id][i]; }); if (!n.why && nw[id]) n.why = nw[id]; } });
 const PWMAP = {}; PW.forEach(p => PWMAP[p.id] = p);
 
 
@@ -37,6 +38,7 @@ function items(pw){
   for (const [id, n] of Object.entries(pw.nodes)){
     if (n.ask) out.push({pw, key:`${pw.id}:${id}?`, type:"ask", node:id});
     if (n.fork) n.fork.forEach((f, i) => out.push({pw, key:`${pw.id}:${id}>${i}`, type:"edge", node:id, i}));
+    if (n.mech) out.push({pw, key:`${pw.id}:${id}!`, type:"mech", node:id});
   }
   return out;
 }
@@ -55,6 +57,7 @@ function pathTo(pw, id){ const m = parentMap(pw), out = []; let c = id; while (m
 function nodeStatus(pw, id){
   const n = pw.nodes[id]; const keys = [];
   if (n.ask) keys.push(`${pw.id}:${id}?`);
+  if (n.mech) keys.push(`${pw.id}:${id}!`);
   if (n.fork) n.fork.forEach((f, i) => keys.push(`${pw.id}:${id}>${i}`));
   if (!keys.length) return P.ends[pw.id+":"+id] ? "good" : "";
   const st = keys.map(k => P.items[k]);
@@ -80,7 +83,8 @@ function notesHTML(n){
   h += dgHTML(n) + refHTML(n);
   return h ? `<div class="notes">${h}</div>` : "";
 }
-function nodeBox(n, extra){
+function nodeBox(n, extra, hide){
+  if (hide) return el(`<div class="n ${n.kind} ${extra||""}">${n.t}${n.s?`<small class="pend">Answer the twist to see the details</small>`:""}</div>`);
   const has = n.why || n.flag || n.dg || n.ref;
   const b = el(`<div class="n ${n.kind} ${extra||""}">${has?'<span class="i">ⓘ</span>':""}${n.t}${n.s?`<small>${n.s}</small>`:""}${notesHTML(n)}</div>`);
   if (has) b.onclick = e => { if (e.target.closest("a")) return; b.classList.toggle("open"); };
@@ -228,6 +232,7 @@ function walk(pw, learn, hard){
   const cs = learn ? null : pickCase(pw, hard);
   setBar(learn ? "Learn · " + pw.short : pw.short + (hard ? " · hard case" : " · case"), pw.id, "");
   const twists = cs ? (cs.twists || (cs.twist ? [cs.twist] : [])) : []; const twDone = {}; const fdDone = {};
+  const twPending = () => twists.some((t, k) => t.at === cur && !twDone[k]);
   function find(id){ if (!cs || !cs.find || !cs.find[id] || fdDone[id]) return; fdDone[id] = 1; tree.appendChild(el(`<div class="res"><div class="lbl">New information</div>${cs.find[id]}</div>`)); }
   main.innerHTML = "";
   let right = 0, total = 0, steps = 0, cur = pw.root;
@@ -284,9 +289,24 @@ function walk(pw, learn, hard){
       grade(`${pw.id}:twist:${cs.id}:${ti}`, ok);
       b.classList.add(ok ? "ok" : "bad"); if (!ok) wrap.children[opts.findIndex(x => x.i === t.a)].classList.add("ok");
       card.appendChild(el(`<div class="fb" style="background:transparent;padding:8px 0 0">${t.why}</div>`));
+      if (box && box.querySelector(".pend") && !twPending()){ const nb = nodeBox(n); box.replaceWith(nb); box = nb; }
       afterNode(n, box); scrollEnd();
     }; wrap.appendChild(b); });
     scrollEnd();
+  }
+  function mechCard(n){
+    btn.style.display = "none";
+    const m = n.mech, id = cur;
+    const card = el(`<div class="ask mech"><div class="lbl">Why does it work?</div><div class="q">${m.q}</div></div>`);
+    const opts = shuffle(m.o.map((o, i) => ({o, i}))); let done = false;
+    opts.forEach(({o, i}) => { const b = el(`<button class="opt">${o}</button>`); b.onclick = () => {
+      if (done) return; done = true; const ok = i === m.a; total++; if (ok) right++;
+      grade(`${pw.id}:${id}!`, ok); meta();
+      b.classList.add(ok ? "ok" : "bad"); if (!ok) card.querySelectorAll(".opt")[opts.findIndex(x => x.i === m.a)].classList.add("ok");
+      card.appendChild(el(`<div class="fb">${m.why}</div>`));
+      finish(n); scrollEnd();
+    }; card.appendChild(b); });
+    tree.appendChild(card); scrollEnd();
   }
   function fork(n, box){
     btn.style.display = "none";
@@ -323,17 +343,19 @@ function walk(pw, learn, hard){
       if (done) return; done = true; const ok = i === ans; total++; if (ok) right++;
       grade(`${pw.id}:${id}?`, ok);
       b.classList.add(ok ? "ok" : "bad"); if (!ok) card.children[1 + opts.findIndex(x => x.i === ans)].classList.add("ok");
-      setTimeout(() => { card.remove(); const box = nodeBox(n); ph.replaceWith(box); steps++; afterNode(n, box); scrollEnd(); }, ok ? 450 : 1300);
+      setTimeout(() => { card.remove(); const box = nodeBox(n, "", twPending()); ph.replaceWith(box); steps++; afterNode(n, box); scrollEnd(); }, ok ? 450 : 1300);
     }; card.appendChild(b); });
     scrollEnd();
   }
   function reveal(){
     const n = pw.nodes[cur];
     if (n.ask && !learn) return ask(n);
-    line(); const box = nodeBox(n); tree.appendChild(box); steps++;
+    line(); const box = nodeBox(n, "", twPending()); tree.appendChild(box); steps++;
     afterNode(n, box); scrollEnd();
   }
+  let mechDone = false;
   function finish(n){
+    if (n.mech && !mechDone){ mechDone = true; return mechCard(n); }
     P.ends[pw.id+":"+cur] = 1;
     if (cs) P.cases[pw.id+":"+cs.id] = (P.cases[pw.id+":"+cs.id]||0) + 1;
     touch(); save();
@@ -395,6 +417,7 @@ function crumbs(pw, id){
 }
 function buildQ(it){
   const pw = it.pw, n = pw.nodes[it.node];
+  if (it.type === "mech") return {it, ctx: crumbs(pw, it.node) + ` → <span>${n.t}</span>`, q: n.mech.q, opts: n.mech.o, a: n.mech.a, after: {t:"Why it works", why: n.mech.why}};
   if (it.type === "ask"){
     return {it, ctx: crumbs(pw, it.node), q: n.ask.q, opts: n.ask.o, a: n.ask.a, after: n};
   }

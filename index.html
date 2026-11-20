@@ -146,6 +146,8 @@ main{max-width:720px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-i
 .sci.miss{background:var(--ambbg);border:1.5px dashed var(--amb)}
 .sci.bad{background:var(--badbg);border-color:var(--bad);text-decoration:line-through}
 .reveal{margin-top:18px}
+.n small.pend{font-style:italic;opacity:.6}
+.ask.mech{border:1.5px solid var(--dqln);background:var(--dqbg)}.ask.mech .lbl{color:var(--dq)}
 .crumbs{font-size:12.5px;color:var(--mut);line-height:1.7;margin-bottom:10px}
 .crumbs span{background:var(--soft);border-radius:6px;padding:1px 6px;margin:0 2px}
 /* map */
@@ -202,6 +204,7 @@ main{max-width:720px;margin:0 auto;padding:14px 16px calc(96px + env(safe-area-i
 <script src="pathways/anaph.js"></script>
 <script src="pathways/sepsis.js"></script>
 <script src="pathways/whys.js"></script>
+<script src="pathways/mech.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator){let _r=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(_r)return;_r=true;location.reload()});window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{}))}</script>
 </body>
