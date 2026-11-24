@@ -47,6 +47,11 @@ main{max-width:760px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-i
 .chip.bad{background:var(--badbg);border-color:var(--bad);color:var(--ink);text-decoration:line-through}
 .chip.miss{background:var(--missbg);border-color:var(--miss);border-style:dashed;color:var(--ink)}
 .fstep .opt{font-size:14.5px}
+.lbl2{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:12px 0 4px;font-weight:700}
+.covl{display:flex;flex-direction:column;gap:2px}
+.covr{display:flex;gap:8px;font-size:13.5px;line-height:1.4;padding:5px 0;border-top:1px solid var(--line)}
+.covr>span{flex:none;width:18px;font-weight:800}
+.covr.y>span{color:var(--ok)}.covr.n>span{color:var(--bad)}
 .chip.miss::before{content:"+ ";color:var(--miss);font-style:normal}
 .row{display:flex;gap:8px;margin-top:16px}
 .btn{flex:1;border:0;border-radius:11px;padding:13px;font-size:16px;font-weight:600;background:var(--ink);color:var(--bg)}
@@ -450,7 +455,7 @@ function drugQ(){
     <div id="g"></div>
     <div class="verdict" id="v"></div>
     <div class="legend" id="lg" style="display:none">✓ right · <span style="text-decoration:line-through">struck</span> = it doesn't cover that · + dashed = you missed it</div>
-    <div class="why" id="why"><b>Why</b>${d.w}<div class="note" style="margin-top:8px">Rules: ${ruleLinks(d.r)}</div></div>
+    <div class="why" id="why"><b>Why</b>${d.w}<div class="note" style="margin-top:8px">Rules: ${ruleLinks(d.r)}</div><div class="lbl2">Bug by bug</div>${covList(d,ALLBUGS)}</div>
     <div class="row"><button class="btn alt" id="skip">Skip</button><button class="btn" id="go">Check</button></div>
   </div>`);
   const g=c.querySelector("#g");
@@ -513,7 +518,8 @@ function bugQ(){
     const perfect=!wrong&&!miss;record("b:"+b,perfect);
     const v=c.querySelector("#v");v.textContent=perfect?"Spot on.":`${miss} missed, ${wrong} wrong.`;v.style.color=perfect?"var(--ok)":"var(--bad)";
     const w=c.querySelector("#why");w.style.display="block";
-    w.innerHTML=`<b>Rules for this column</b>${bugRules[b].map(id=>`<div style="margin:6px 0"><a href="#" data-rule="${id}" style="color:inherit;font-weight:600">${RULEMAP[id].t}</a><div class="note">${RULEMAP[id].p[0]}</div></div>`).join("")}`;
+    const wrongs=DRUGS.filter(d=>sel.has(d.id)&&!d.set.has(b));
+    w.innerHTML=`<div class="lbl2" style="margin-top:0">Drug by drug</div><div class="covl">${covering.map(d=>`<div class="covr y"><span>✓</span><div><b>${d.n}</b> ${covWhy(d,b,true)}</div></div>`).join("")}${wrongs.map(d=>`<div class="covr n"><span>✗</span><div><b>${d.n}</b> ${covWhy(d,b,false)}</div></div>`).join("")}</div><b style="display:block;margin-top:10px">Rules for this column</b>${bugRules[b].map(id=>`<div style="margin:6px 0"><a href="#" data-rule="${id}" style="color:inherit;font-weight:600">${RULEMAP[id].t}</a><div class="note">${RULEMAP[id].p[0]}</div></div>`).join("")}`;
     wireRuleLinks(w);
     c.querySelector("#go").textContent="Next";c.querySelector("#skip").style.display="none";
   };
@@ -727,6 +733,76 @@ function drugWhy(d,f,step){
   if(step==="ps")return f.ps===0?PSWHY.yes:(PSWHY[d.id]||PSWHY.no);
 }
 
+/* why a drug does or doesn't cover a bug, derived from the framework */
+const BL=x=>F[x.id].bl!=null||F[x.id].hit===0;
+const COVO={
+ "cefaz:ngon":"Earlier-generation cephalosporins aren't active enough against Neisseria. It takes a 3rd-gen like ceftriaxone.","cefaz:nmen":"Earlier-generation cephalosporins aren't active enough against Neisseria, and don't reach the CSF well. Ceftriaxone is the meningitis drug.",
+ "cefox:ngon":"Earlier-generation cephalosporins aren't active enough against Neisseria. It takes a 3rd-gen like ceftriaxone.","cefox:nmen":"Earlier-generation cephalosporins aren't active enough against Neisseria, and don't reach the CSF well.",
+ "ceftaz:ngon":"Ceftazidime's Gram −ve strength is aimed at Pseudomonas. Ceftriaxone is the Neisseria cephalosporin.","ceftaz:nmen":"Ceftazidime's Gram −ve strength is aimed at Pseudomonas. Ceftriaxone is the Neisseria cephalosporin.",
+ "coamox:ngon":"Not a Neisseria drug: ceftriaxone is the mainstay.","coamox:nmen":"Not a Neisseria drug, and poor CSF penetration: ceftriaxone or benzylpenicillin instead.",
+ "unasyn:ngon":"Not a Neisseria drug: ceftriaxone is the mainstay.","unasyn:nmen":"Not a Neisseria drug: ceftriaxone or benzylpenicillin instead.","piptaz:ngon":"Not a Neisseria drug: ceftriaxone is the mainstay.",
+ "cipro:mrsa":"Most MRSA strains are also quinolone-resistant, and quinolones select for MRSA.","levo:mrsa":"Most MRSA strains are also quinolone-resistant.","moxi:mrsa":"Most MRSA strains are also quinolone-resistant.",
+ "azith:mrsa":"Macrolide resistance (erm genes, efflux) is very common in MRSA.","doxy:mrsa":"Doxycycline does treat many community MRSA skin infections, but this chart doesn't count it.",
+ "amino:mssa":"Only used alongside a β-lactam for synergy in staph endocarditis, never on its own.","doxy:mssa":"It works for some staph skin infections, but this chart doesn't count it.",
+ "doxy:kleb":"Tetracycline efflux pumps are common in Gram −ve bacilli beyond E. coli, so it's unreliable.","doxy:escappm":"Tetracycline efflux pumps are common in these Gram −ves, so it's unreliable.",
+ "doxy:ngon":"Gonococcal tetracycline resistance is widespread.","azith:ngon":"Gonococcal macrolide resistance is rising, so azithromycin isn't used on its own any more.","tmp:ngon":"Gonococcal resistance to co-trimoxazole is widespread."
+};
+function covWhy(d,b,y){
+  if(COVO[d.id+":"+b])return COVO[d.id+":"+b];
+  const f=F[d.id],id=d.id,isBL=f.hit===0;
+  const chart=" (this chart doesn't count it, though it can work clinically)";
+  switch(b){
+  case "mrsa": if(y)return f.hit===1?"Binds D-Ala-D-Ala, not a PBP, so mecA's PBP2a doesn't matter.":"Doesn't work through PBPs, so PBP2a is irrelevant.";
+    if(isBL)return "β-lactam: MRSA's PBP2a won't bind it.";
+    if(id==="metro")return "Aerobe: it can't activate metronidazole.";
+    if(id==="amino")return "Not used on its own for staph; the chart doesn't count it.";
+    return "Resistance is too common to rely on it"+chart+".";
+  case "mssa": if(y){if(!isBL)return "Not a β-lactam, so staph penicillinase is irrelevant.";return f.bl===2?"The inhibitor blocks staph penicillinase.":"Survives staph penicillinase.";}
+    if(f.bl===0)return "Staph penicillinase destroys it.";
+    if(id==="ceftaz")return "Binds staph PBPs poorly, even though it survives penicillinase.";
+    if(id==="aztreo")return "Only binds Gram −ve PBP3.";
+    if(id==="metro")return "Aerobe: can't activate it.";
+    return "Not relied on for staph"+chart+".";
+  case "strep": if(y)return "No outer membrane and no penicillinase: an easy target.";
+    if(id==="aztreo")return "Only binds Gram −ve PBP3, so it has nothing to grab in strep.";
+    if(id==="cipro")return "Cipro is weak against strep; levo and moxi fixed that.";
+    if(id==="amino")return "Strep ferment, so there's no respiratory gradient to pull aminoglycosides in.";
+    if(id==="metro")return "Strep aren't strict anaerobes, so they don't activate it.";
+    return "Not counted"+chart+".";
+  case "ecoli": case "pmir": case "kleb":
+    if(y){let r="Gets through the outer membrane.";if(b==="kleb"&&isBL)r+=f.bl>=2?" The inhibitor or carbapenem also beats SHV-1.":" Survives Klebsiella's SHV-1 β-lactamase.";return r;}
+    if(f.om===2)return "Kept out by the Gram −ve outer membrane.";
+    if(id==="metro")return "Aerobic organism, so metronidazole is never activated.";
+    if(b==="kleb"&&f.bl===0)return "Klebsiella's chromosomal SHV-1 β-lactamase destroys it.";
+    if(b==="pmir"&&id==="doxy")return "Proteus pumps tetracyclines out.";
+    if(id==="peng")return "Too polar to get through porins well, and destroyed by Gram −ve β-lactamases.";
+    return "Not reliably covered"+chart+".";
+  case "pseud": if(y)return "In the anti-pseudomonal club: gets past its few porins, its pumps and its AmpC.";
+    if(id==="metro")return "Pseudomonas is a strict aerobe, so metronidazole is never activated.";
+    if(f.om===2)return "Kept out by the outer membrane, never mind Pseudomonas' extra defences.";
+    return (PSWHY[id]||PSWHY.no).replace(/^No\. /,"");
+  case "escappm": if(y){if(!isBL)return "Not a β-lactam, so AmpC doesn't matter.";if(f.bl>=3)return "Survives AmpC.";return "Counted on the chart, but AmpC can be switched up during treatment, so it's unreliable in serious infection.";}
+    if(f.om===2)return "Kept out by the outer membrane.";
+    if(isBL)return "AmpC destroys it"+(f.bl===2?", and clavulanate doesn't inhibit AmpC":"")+".";
+    if(id==="metro")return "Aerobic organisms, so no activation.";
+    return "Not reliably covered"+chart+".";
+  case "ngon": case "nmen": if(y){if(b==="nmen"&&id==="amox")return "Meningococcus has stayed penicillin-sensitive.";return "Reaches Gram −ve cocci, and resistance isn't a big problem.";}
+    if(b==="ngon"&&(id==="amox"||id==="peng"))return "Gonococcal penicillinase (and altered PBPs) killed off penicillin for gonorrhoea.";
+    if(id==="metro")return "Aerobe: no activation.";
+    if(id==="amino")return "Not used for Neisseria.";
+    if(f.om===2&&id!=="azith")return "Kept out by the outer membrane.";
+    return "Not counted"+chart+".";
+  case "anaer": if(y){if(id==="metro")return "Anaerobes are exactly where its nitro group gets activated.";if(f.bl===2)return "The inhibitor blocks the Bacteroides β-lactamase.";if(f.bl===4)return "Carbapenems survive the Bacteroides β-lactamase.";if(id==="cefox")return "Cephamycins survive the Bacteroides β-lactamase.";if(id==="clinda")return "Clindamycin reaches anaerobes through the 50S ribosome.";if(id==="moxi")return "Moxi traded Pseudomonas for anaerobe cover.";return "Covered.";}
+    if(id==="amino")return "No oxygen, no respiratory gradient, so no uptake.";
+    if(id==="aztreo")return "Only binds Gram −ve PBP3; no anaerobe activity.";
+    if(isBL)return "The Bacteroides β-lactamase destroys it.";
+    return "Doesn't reach anaerobes reliably.";
+  case "atyp": if(y)return ATWHY.yes; return f.hit<=1?ATWHY.wall:ATWHY.no;
+  }
+  return y?"Covered.":"Not covered.";
+}
+function covList(d,bugs){return `<div class="covl">${bugs.map(b=>{const y=d.set.has(b);return `<div class="covr ${y?"y":"n"}"><span>${y?"✓":"✗"}</span><div><b>${BUG[b]}</b> ${covWhy(d,b,y)}</div></div>`}).join("")}</div>`}
+
 /* ---------- framework: reason it out ---------- */
 const HITS=["Cell wall: binds PBPs","Cell wall: binds D-Ala-D-Ala","Ribosome: 30S","Ribosome: 50S","DNA gyrase / topoisomerase IV","Folate synthesis","DNA, via toxic radicals"];
 const OMS=["Yes, gets through well","Partly (only the easier Gram −ves)","No, it's kept out"];
@@ -810,7 +886,7 @@ function frameDrug(){
       g.querySelectorAll(".chip").forEach(ch=>{const b=ch.dataset.b,y=d.set.has(b),s=sel.has(b);ch.classList.remove("sel");if(y&&s)ch.classList.add("ok");else if(!y&&s){ch.classList.add("bad");w++}else if(y&&!s){ch.classList.add("miss");m++}});
       const perfect=!w&&!m;record("f:"+d.id,perfect&&ok===tot);
       const v=c.querySelector(".verdict");v.textContent=`Framework ${ok}/${tot} · coverage ${perfect?"spot on":m+" missed, "+w+" wrong"}`;v.style.color=perfect?"var(--ok)":"var(--bad)";
-      const wy=c.querySelector(".why");wy.style.display="block";wy.innerHTML=`<b>Why</b>${d.w}`;
+      const wy=c.querySelector(".why");wy.style.display="block";wy.innerHTML=`<b>Why</b>${d.w}<div class="lbl2">Bug by bug</div>${covList(d,ALLBUGS)}`;
       c.querySelector(".btn").textContent="Next drug";
     };
     host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
@@ -836,7 +912,8 @@ function frameBug(){
       const perfect=!w&&!m;record("fb:"+b,perfect&&ok===tot);
       const v=c.querySelector(".verdict");v.textContent=`Framework ${ok}/${tot} · drugs ${perfect?"spot on":m+" missed, "+w+" wrong"}`;v.style.color=perfect?"var(--ok)":"var(--bad)";
       const wy=c.querySelector(".why");wy.style.display="block";
-      wy.innerHTML=`<b>How the framework gets you there</b>${DEFWHY[b]} So the drugs that work are the ones that ${NEEDS[f.n].charAt(0).toLowerCase()+NEEDS[f.n].slice(1)}: ${cover.map(d=>d.n).join(", ")}.`;
+      const wrong=DRUGS.filter(d=>sel.has(d.id)&&!d.set.has(b));
+      wy.innerHTML=`<b>How the framework gets you there</b>${DEFWHY[b]} So the drugs that work are the ones that ${NEEDS[f.n].charAt(0).toLowerCase()+NEEDS[f.n].slice(1)}.<div class="lbl2">Drug by drug</div><div class="covl">${cover.map(d=>`<div class="covr y"><span>✓</span><div><b>${d.n}</b> ${covWhy(d,b,true)}</div></div>`).join("")}${wrong.map(d=>`<div class="covr n"><span>✗</span><div><b>${d.n}</b> ${covWhy(d,b,false)}</div></div>`).join("")}</div>`;
       c.querySelector(".btn").textContent="Next bug";
     };
     host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
