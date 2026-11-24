@@ -164,7 +164,7 @@ function home(){
     main.appendChild(el(`<div class="sec">${g.n}</div>`));
     const tiles = el(`<div class="tiles"></div>`);
     g.ids.forEach(id => {
-      if (id === "abx"){ const a = abxStats(); tiles.appendChild(el(`<a class="tile" href="abx.html" style="--c:#2f9e6b"><span class="ti">${ico("abx")}</span><span class="tn">Antibiotics</span><span class="ts">${a ? Math.round(100*a.right/a.total)+"% right · "+a.total+" answered" : "Coverage, classes and mechanisms"}</span><span class="tbar"><i style="width:${a?Math.round(100*a.right/a.total):0}%"></i></span></a>`)); return; }
+      if (id === "abx"){ const a = abxStats(); tiles.appendChild(el(`<a class="tile" href="abx.html" style="--c:#2f9e6b"><span class="ti">${ico("abx")}</span><span class="tn">Antibiotics</span><span class="ts">${a ? Math.round(100*a.right/a.total)+"% right · "+a.total+" answered" : "Which class for which organism type"}</span><span class="tbar"><i style="width:${a?Math.round(100*a.right/a.total):0}%"></i></span></a>`)); return; }
       const p = PWMAP[id]; if (!p) return;
       const m = mastery(p), d = dueCount(p);
       tiles.appendChild(el(`<a class="tile" href="#${p.id}" style="--c:${p.color}"><span class="ti">${ico(p.id)}</span>${d?`<span class="due">${d}</span>`:""}<span class="tn">${p.title}</span><span class="ts">${endsSeen(p)}/${endsOf(p).length} routes · ${p.cases.length} cases</span><span class="tbar"><i style="width:${Math.round(m*100)}%"></i></span></a>`));
