@@ -47,6 +47,10 @@ main{max-width:760px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-i
 .chip.bad{background:var(--badbg);border-color:var(--bad);color:var(--ink);text-decoration:line-through}
 .chip.miss{background:var(--missbg);border-color:var(--miss);border-style:dashed;color:var(--ink)}
 .fstep .opt{font-size:14.5px}
+.hlsum{border:1.5px solid var(--ink)}
+.hlrow{display:flex;gap:10px;font-size:14.5px;line-height:1.45;padding:6px 0;border-top:1px solid var(--line)}
+.hlrow>span{flex:none;min-width:44px;font-weight:800}.hlrow .y{color:var(--ok)}.hlrow .n{color:var(--bad)}
+.hltrap{margin-top:8px;background:var(--bg);border-radius:10px;padding:10px;font-size:14.5px;line-height:1.45}.hltrap b{display:block;margin-bottom:2px}
 .lbl2{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:12px 0 4px;font-weight:700}
 .covl{display:flex;flex-direction:column;gap:2px}
 .covr{display:flex;gap:8px;font-size:13.5px;line-height:1.4;padding:5px 0;border-top:1px solid var(--line)}
@@ -124,7 +128,8 @@ svg text{font-family:inherit}
 <header>
   <div class="top"><h1><a href="./" aria-label="Back to home" style="color:inherit;text-decoration:none;margin-right:8px">‹</a>Antibiotics</h1><div class="score" id="score"></div></div>
   <nav>
-    <button data-v="frame" class="on">Framework</button>
+    <button data-v="hl" class="on">Highlights</button>
+    <button data-v="frame">Framework</button>
     <button data-v="drug">Drug → bugs</button>
     <button data-v="bug">Bug → drugs</button>
     <button data-v="rules">Rules</button>
@@ -432,12 +437,12 @@ const el=(h)=>{const d=document.createElement("div");d.innerHTML=h;return d.firs
 
 // ---------- views ----------
 const main=document.getElementById("main");
-let view="frame",lastDrug=null,lastBug=null;
+let view="hl",lastDrug=null,lastBug=null;
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");view=b.dataset.v;render();window.scrollTo(0,0);
 });
-function render(){({frame:frameV,drug:drugQ,bug:bugQ,rules:rulesV,chart:chartV,classes:classesV})[view]()}
+function render(){({hl:hlV,frame:frameV,drug:drugQ,bug:bugQ,rules:rulesV,chart:chartV,classes:classesV})[view]()}
 
 function ruleLinks(ids){return ids.map(id=>`<a href="#" data-rule="${id}" style="color:inherit">${RULEMAP[id].t}</a>`).join(" · ")}
 function wireRuleLinks(root){root.querySelectorAll("[data-rule]").forEach(a=>a.onclick=e=>{
@@ -919,6 +924,89 @@ function frameBug(){
     host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
   };
   next();
+}
+
+/* ---------- highlights: just the bits that matter ---------- */
+const HL={
+ peng:{q:["strep","mssa","ecoli"],trap:"Almost all staph make penicillinase, so plain penicillin is a strep drug."},
+ fluclox:{q:["mssa","mrsa","ecoli"],trap:"The staph drug, but useless for MRSA (that's what the M means)."},
+ amox:{q:["strep","ecoli","kleb"],trap:"Misses Klebsiella: its SHV-1 β-lactamase eats amoxicillin."},
+ cefaz:{q:["mssa","kleb","anaer"],trap:"Skin flora plus 'PEK' (Proteus, E. coli, Klebsiella). That's why it's the surgical prophylaxis drug."},
+ cefox:{q:["anaer","mssa","pseud"],trap:"The cephalosporin that reaches anaerobes."},
+ ceftri:{q:["nmen","ngon","pseud"],trap:"The Neisseria and meningitis drug, but it misses Pseudomonas."},
+ ceftaz:{q:["pseud","mssa","anaer"],trap:"The anti-pseudomonal cephalosporin. It gave up staph to get there."},
+ cefep:{q:["pseud","escappm","mrsa"],trap:"Gets both sides, Gram +ve and Pseudomonas/ESCAPPM, but still no MRSA."},
+ coamox:{q:["anaer","kleb","pseud"],trap:"The inhibitor adds staph, Klebsiella and anaerobes, but not Pseudomonas."},
+ unasyn:{q:["anaer","mssa","pseud"],trap:"Same pattern as co-amoxiclav."},
+ piptaz:{q:["pseud","anaer","mrsa"],trap:"Very broad (Pseudomonas plus anaerobes) but still a β-lactam, so no MRSA."},
+ erta:{q:["anaer","escappm","pseud"],trap:"The carbapenem that misses Pseudomonas."},
+ mero:{q:["pseud","anaer","mrsa"],trap:"Covers almost everything except MRSA and atypicals."},
+ aztreo:{q:["pseud","strep","anaer"],trap:"Gram −ve only. Handy in penicillin allergy."},
+ cipro:{q:["pseud","strep","atyp"],trap:"Great for Gram −ves and Pseudomonas, weak against strep."},
+ levo:{q:["atyp","strep","pseud"],trap:"The 'respiratory' quinolone: strep and atypicals, and still Pseudomonas."},
+ moxi:{q:["anaer","atyp","pseud"],trap:"Adds anaerobes, but loses Pseudomonas."},
+ amino:{q:["pseud","strep","anaer"],trap:"Aerobic Gram −ve bacilli only."},
+ clinda:{q:["mrsa","anaer","ecoli"],trap:"Gram +ves including MRSA, plus anaerobes, but no Gram −ve bacilli."},
+ azith:{q:["atyp","strep","ecoli"],trap:"The atypical drug. Kept out of gut Gram −ves."},
+ doxy:{q:["atyp","strep","pmir"],trap:"Atypicals yes, Proteus no (it pumps tetracyclines out)."},
+ vanc:{q:["mrsa","strep","ecoli"],trap:"Gram +ve only, including MRSA. Too big to get into Gram −ves."},
+ tmp:{q:["mrsa","ecoli","pseud"],trap:"Hits folate, so MRSA is in, but it misses Pseudomonas."},
+ metro:{q:["anaer","strep","ecoli"],trap:"Anaerobes and nothing else."}
+};
+const HLB={
+ mrsa:{go:["vanc","clinda","tmp"],trap:"mero"},mssa:{go:["fluclox","cefaz","coamox"],trap:"amox"},strep:{go:["peng","amox","ceftri"],trap:"cipro"},
+ ecoli:{go:["coamox","ceftri","amino"],trap:"vanc"},pmir:{go:["amox","coamox","ceftri"],trap:"doxy"},kleb:{go:["coamox","ceftri","amino"],trap:"amox"},
+ pseud:{go:["piptaz","ceftaz","cipro","amino","mero"],trap:"erta"},escappm:{go:["cefep","mero","cipro"],trap:"coamox"},
+ ngon:{go:["ceftri"],trap:"amox"},nmen:{go:["ceftri","amox"],trap:"vanc"},anaer:{go:["metro","coamox","piptaz","clinda"],trap:"ceftri"},atyp:{go:["azith","doxy","levo"],trap:"coamox"}
+};
+let HMODE="drug";
+const DBY=id=>DRUGS.find(x=>x.id===id);
+function hlV(){
+  main.innerHTML="";
+  const sw=el(`<div class="filter" style="margin:0 0 10px"><button data-m="drug" class="${HMODE==="drug"?"on":""}">By drug</button><button data-m="bug" class="${HMODE==="bug"?"on":""}">By bug</button></div>`);
+  sw.querySelectorAll("button").forEach(b=>b.onclick=()=>{HMODE=b.dataset.m;hlV()});
+  main.appendChild(sw);
+  (HMODE==="drug"?hlDrug:hlBug)();
+}
+function ynCard(host,q,ans,why,done){
+  const c=el(`<div class="card hl"><div style="font-weight:700;font-size:16px">${q}</div><div class="row" style="margin-top:10px"><button class="btn alt">Yes</button><button class="btn alt">No</button></div></div>`);
+  const [by,bn]=c.querySelectorAll(".btn");let fin=false;
+  [[by,true],[bn,false]].forEach(([b,v])=>b.onclick=()=>{if(fin)return;fin=true;const ok=v===ans;b.style.background=ok?"var(--okbg)":"var(--badbg)";b.style.borderColor=ok?"var(--ok)":"var(--bad)";if(!ok){const o=v?bn:by;o.style.background="var(--okbg)";o.style.borderColor="var(--ok)"}
+    c.appendChild(el(`<div class="note" style="margin-top:8px;color:var(--ink)"><b style="color:${ok?"var(--ok)":"var(--bad)"}">${ok?"Yes, right.":"Not quite."}</b> ${why}</div>`));done(ok)});
+  host.appendChild(c);
+}
+function hlDrug(){
+  const d=pickWeighted(DRUGS,x=>"h:"+x.id),h=HL[d.id];let ok=0,k=0;
+  const host=el(`<div></div>`);main.appendChild(host);
+  host.appendChild(el(`<div class="card"><div class="q-label">Does it cover…?</div><div class="q-title">${d.n}</div><div class="q-sub">${d.c}</div></div>`));
+  const next=()=>{if(k<h.q.length){const b=h.q[k++],y=d.set.has(b);ynCard(host,`${BUG[b]}?`,y,covWhy(d,b,y),r=>{if(r)ok++;setTimeout(next,250)});host.lastChild.scrollIntoView({behavior:"smooth",block:"nearest"});return}
+    record("h:"+d.id,ok===h.q.length);
+    const yes=ALLBUGS.filter(b=>d.set.has(b)).map(b=>BUG[b]),no=ALLBUGS.filter(b=>!d.set.has(b)).map(b=>BUG[b]);
+    const s=el(`<div class="card hlsum"><div class="q-label">${ok}/${h.q.length} · the highlights</div><div style="font-weight:800;font-size:18px;margin-bottom:6px">${d.n}</div>
+      <div class="hlrow"><span class="y">✓</span><div>${yes.join(", ")}</div></div><div class="hlrow"><span class="n">✗</span><div>${no.join(", ")}</div></div>
+      <div class="hltrap"><b>Remember</b>${h.trap}</div><button class="btn" style="margin-top:12px">Next drug</button></div>`);
+    s.querySelector(".btn").onclick=()=>{hlV();window.scrollTo(0,0)};host.appendChild(s);s.scrollIntoView({behavior:"smooth",block:"nearest"})};
+  next();
+}
+function hlBug(){
+  const b=pickWeighted(ALLBUGS,x=>"hb:"+x),h=HLB[b];let ok=0;
+  const host=el(`<div></div>`);main.appendChild(host);
+  host.appendChild(el(`<div class="card"><div class="q-label">What treats it?</div><div class="q-title" style="font-style:italic;color:${BUGCOL[b]}">${BUG[b]}</div></div>`));
+  const go=DBY(h.go[Math.floor(Math.random()*h.go.length)]),trap=DBY(h.trap);
+  const wrong=shuffle(DRUGS.filter(d=>!d.set.has(b)&&d.id!==trap.id)).slice(0,2).concat([trap]);
+  const opts=shuffle([go].concat(wrong));
+  const c=el(`<div class="card hl"><div style="font-weight:700;font-size:16px">Which of these covers it?</div><div class="fo"></div></div>`);let fin=false;
+  opts.forEach(d=>{const bt=el(`<button class="opt">${d.n}</button>`);bt.onclick=()=>{if(fin)return;fin=true;const r=d===go;if(r)ok++;bt.classList.add(r?"ok":"bad");if(!r)[...c.querySelectorAll(".opt")][opts.indexOf(go)].classList.add("ok");
+    c.appendChild(el(`<div class="note" style="margin-top:8px;color:var(--ink)"><b>${go.n}:</b> ${covWhy(go,b,true)}${r?"":`<br><b>${d.n}:</b> ${covWhy(d,b,false)}`}</div>`));
+    setTimeout(()=>{ynCard(host,`Trap check: does ${trap.n} cover ${BUG[b]}?`,false,covWhy(trap,b,false),r2=>{if(r2)ok++;setTimeout(sum,250)});host.lastChild.scrollIntoView({behavior:"smooth",block:"nearest"})},250)};c.querySelector(".fo").appendChild(bt)});
+  host.appendChild(c);
+  function sum(){
+    record("hb:"+b,ok===2);
+    const s=el(`<div class="card hlsum"><div class="q-label">${ok}/2 · the highlights</div><div style="font-weight:800;font-size:18px;font-style:italic;margin-bottom:6px;color:${BUGCOL[b]}">${BUG[b]}</div>
+      <div class="hlrow"><span class="y">Go-to</span><div>${h.go.map(x=>DBY(x).n).join(", ")}</div></div>
+      <div class="hlrow"><span class="n">Trap</span><div>${trap.n}</div></div>
+      <div class="hltrap"><b>Why</b>${DEFWHY[b]}</div><button class="btn" style="margin-top:12px">Next bug</button></div>`);
+    s.querySelector(".btn").onclick=()=>{hlV();window.scrollTo(0,0)};host.appendChild(s);s.scrollIntoView({behavior:"smooth",block:"nearest"})}
 }
 
 render();
