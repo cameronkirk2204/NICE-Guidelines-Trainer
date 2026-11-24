@@ -46,6 +46,7 @@ main{max-width:760px;margin:0 auto;padding:14px 14px calc(14px + env(safe-area-i
 .chip.ok::before{content:"✓ ";color:var(--ok);font-style:normal}
 .chip.bad{background:var(--badbg);border-color:var(--bad);color:var(--ink);text-decoration:line-through}
 .chip.miss{background:var(--missbg);border-color:var(--miss);border-style:dashed;color:var(--ink)}
+.fstep .opt{font-size:14.5px}
 .chip.miss::before{content:"+ ";color:var(--miss);font-style:normal}
 .row{display:flex;gap:8px;margin-top:16px}
 .btn{flex:1;border:0;border-radius:11px;padding:13px;font-size:16px;font-weight:600;background:var(--ink);color:var(--bg)}
@@ -118,7 +119,8 @@ svg text{font-family:inherit}
 <header>
   <div class="top"><h1><a href="./" aria-label="Back to home" style="color:inherit;text-decoration:none;margin-right:8px">‹</a>Antibiotics</h1><div class="score" id="score"></div></div>
   <nav>
-    <button data-v="drug" class="on">Drug → bugs</button>
+    <button data-v="frame" class="on">Framework</button>
+    <button data-v="drug">Drug → bugs</button>
     <button data-v="bug">Bug → drugs</button>
     <button data-v="rules">Rules</button>
     <button data-v="classes">Classes</button>
@@ -425,12 +427,12 @@ const el=(h)=>{const d=document.createElement("div");d.innerHTML=h;return d.firs
 
 // ---------- views ----------
 const main=document.getElementById("main");
-let view="drug",lastDrug=null,lastBug=null;
+let view="frame",lastDrug=null,lastBug=null;
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");view=b.dataset.v;render();window.scrollTo(0,0);
 });
-function render(){({drug:drugQ,bug:bugQ,rules:rulesV,chart:chartV,classes:classesV})[view]()}
+function render(){({frame:frameV,drug:drugQ,bug:bugQ,rules:rulesV,chart:chartV,classes:classesV})[view]()}
 
 function ruleLinks(ids){return ids.map(id=>`<a href="#" data-rule="${id}" style="color:inherit">${RULEMAP[id].t}</a>`).join(" · ")}
 function wireRuleLinks(root){root.querySelectorAll("[data-rule]").forEach(a=>a.onclick=e=>{
@@ -676,6 +678,122 @@ function lactamSVG(){
    ${sq(195,30,CLS.carb.col)}${pent(225,30,CLS.carb.col,"C")}${cap(228,"Carbapenem","S swapped for C")}
    ${sq(300,30,CLS.mono.col)}${cap(315,"Monobactam","ring on its own")}
   </svg>`;
+}
+
+/* ---------- framework: reason it out ---------- */
+const HITS=["Cell wall: binds PBPs","Cell wall: binds D-Ala-D-Ala","Ribosome: 30S","Ribosome: 50S","DNA gyrase / topoisomerase IV","Folate synthesis","DNA, via toxic radicals"];
+const OMS=["Yes, gets through well","Partly (only the easier Gram −ves)","No, it's kept out"];
+const BLS=["Destroyed by penicillinases","Survives staph penicillinase, but not AmpC","Protected by a β-lactamase inhibitor","Survives AmpC too","Survives almost all β-lactamases"];
+const SPS=["Needs oxygen-dependent uptake (aerobes only)","Needs activation without oxygen (anaerobes only)","No special requirement"];
+const YN=["Yes","No"];
+const F={
+ peng:{hit:0,om:2,bl:0,sp:2,at:1,ps:1},fluclox:{hit:0,om:2,bl:1,sp:2,at:1,ps:1},amox:{hit:0,om:1,bl:0,sp:2,at:1,ps:1},
+ cefaz:{hit:0,om:1,bl:1,sp:2,at:1,ps:1},cefox:{hit:0,om:1,bl:1,sp:2,at:1,ps:1,note:"Cephamycins are the exception that also survives the Bacteroides β-lactamase, so they reach anaerobes."},
+ ceftri:{hit:0,om:0,bl:1,sp:2,at:1,ps:1},ceftaz:{hit:0,om:0,bl:1,sp:2,at:1,ps:0,note:"Ceftazidime binds Gram +ve PBPs poorly, so it loses staph despite being a cephalosporin."},
+ cefep:{hit:0,om:0,bl:3,sp:2,at:1,ps:0},coamox:{hit:0,om:1,bl:2,sp:2,at:1,ps:1},unasyn:{hit:0,om:1,bl:2,sp:2,at:1,ps:1},piptaz:{hit:0,om:0,bl:2,sp:2,at:1,ps:0},
+ erta:{hit:0,om:0,bl:4,sp:2,at:1,ps:1,note:"Ertapenem is the carbapenem that can't get into Pseudomonas."},mero:{hit:0,om:0,bl:4,sp:2,at:1,ps:0},
+ aztreo:{hit:0,om:0,bl:null,sp:2,at:1,ps:0,note:"A monobactam that only binds Gram −ve PBP3, so it has no Gram +ve or anaerobe activity at all."},
+ cipro:{hit:4,om:0,bl:null,sp:2,at:1,ps:0,note:"Weak against strep, which is why it's not a pneumonia drug."},levo:{hit:4,om:0,bl:null,sp:2,at:0,ps:0},moxi:{hit:4,om:0,bl:null,sp:2,at:0,ps:1,note:"Moxi adds anaerobes and loses Pseudomonas."},
+ amino:{hit:2,om:0,bl:null,sp:0,at:1,ps:0},clinda:{hit:3,om:2,bl:null,sp:2,at:1,ps:1,note:"Not a β-lactam, so MRSA's PBP2a doesn't matter. It also reaches anaerobes."},
+ azith:{hit:3,om:2,bl:null,sp:2,at:0,ps:1,note:"The outer membrane keeps it out of the gut Gram −ves, but it still reaches Neisseria."},doxy:{hit:2,om:1,bl:null,sp:2,at:0,ps:1,note:"Proteus pumps tetracyclines out, so E. coli yes, Proteus no."},vanc:{hit:1,om:2,bl:null,sp:2,at:1,ps:1},
+ tmp:{hit:5,om:0,bl:null,sp:2,at:1,ps:1},metro:{hit:6,om:0,bl:null,sp:1,at:1,ps:1}
+};
+const BF={
+ mrsa:{k:0,d:0,n:0},mssa:{k:0,d:1,n:1},strep:{k:0,d:2,n:2},ecoli:{k:1,d:3,n:3},pmir:{k:1,d:4,n:4},kleb:{k:1,d:5,n:5},
+ pseud:{k:1,d:6,n:6},escappm:{k:1,d:7,n:7},ngon:{k:2,d:8,n:8},nmen:{k:2,d:9,n:9},anaer:{k:3,d:10,n:10},atyp:{k:4,d:11,n:11}
+};
+const KINDS=["Gram +ve coccus","Gram −ve bacillus","Gram −ve coccus","Anaerobe","Atypical"];
+const DEFS=["PBP2a (mecA): no β-lactam can bind","Penicillinase","Nothing much: no outer membrane to get through","An outer membrane: drugs need porins to get in","An outer membrane, plus intrinsic resistance to tetracyclines","A chromosomal β-lactamase (SHV-1) that destroys ampicillin","Very few porins, efflux pumps and its own AmpC","Inducible AmpC β-lactamase","Penicillinase and quinolone resistance are common","Very little: still penicillin-sensitive","β-lactamase (Bacteroides) and no oxygen","No cell wall, or lives inside cells"];
+const NEEDS=["Hit something other than PBPs","Survive penicillinase, or not be a β-lactam","Reach a Gram +ve: almost anything that hits the wall or ribosome","Get through the Gram −ve outer membrane","Get through the outer membrane, but not be a tetracycline","Get through the outer membrane and survive its β-lactamase","Be specifically anti-pseudomonal","Survive AmpC (cefepime, carbapenems) or not be a β-lactam","Reach a Gram −ve coccus: ceftriaxone is the mainstay","Reach a Gram −ve coccus; penicillin still works","Survive anaerobe β-lactamase, or be activated without oxygen","Get inside cells and hit something other than the wall"];
+const DEFWHY={mrsa:"mecA codes for a spare PBP that β-lactams can't grip.",mssa:"Staph penicillinase breaks plain penicillins, so you need a resistant one or an inhibitor.",strep:"No outer membrane and usually no β-lactamase, so lots of things work.",ecoli:"Its outer membrane keeps out big or greasy drugs like vancomycin and macrolides.",pmir:"Proteus pumps tetracyclines out, so doxycycline misses it even though it gets into E. coli.",kleb:"SHV-1 makes Klebsiella intrinsically resistant to amoxicillin, which is why the inhibitor or a cephalosporin is needed.",pseud:"Few porins, lots of pumps and AmpC: only the anti-pseudomonal club gets through.",escappm:"Their AmpC can be switched up during treatment, so cephalosporins below cefepime are unreliable.",ngon:"Resistance has knocked out penicillin and ciprofloxacin, so ceftriaxone is the treatment.",nmen:"Meningococcus has stayed sensitive to penicillin and ceftriaxone.",anaer:"Bacteroides makes a β-lactamase, and with no oxygen, aminoglycosides can't get in. Metronidazole needs exactly those conditions.",atyp:"No wall to attack, or hiding inside cells, so only drugs that hit the ribosome or DNA and get into cells work."};
+let FMODE="drug";
+function predictText(f){
+  const p=[];
+  if(f.hit===0)p.push("A β-lactam, so <b>never MRSA</b> (PBP2a) and <b>never atypicals</b> (no wall).");
+  if(f.hit===1)p.push("Hits the wall without using PBPs, so <b>MRSA is covered</b>.");
+  if(f.hit>=2&&f.hit<=5)p.push("Doesn't act on PBPs, so MRSA's PBP2a is irrelevant.");
+  if(f.om===2)p.push("Kept out by the outer membrane, so <b>Gram +ve only</b> (plus anaerobes if it's clindamycin).");
+  if(f.om===1)p.push("Gets into some of the easier Gram −ves (E. coli, sometimes Proteus or Klebsiella), not the harder ones.");
+  if(f.om===0&&f.sp!==1)p.push("Gets into Gram −ves.");
+  if(f.bl===0)p.push("Destroyed by penicillinases, so <b>no MSSA</b>, no Klebsiella, no anaerobes.");
+  if(f.bl===1)p.push("Survives staph penicillinase, so <b>MSSA in</b>, but <b>not reliable for ESCAPPM</b> (AmpC).");
+  if(f.bl===2)p.push("The inhibitor unlocks <b>MSSA, Klebsiella and anaerobes</b>.");
+  if(f.bl===3)p.push("Survives AmpC, so <b>ESCAPPM in</b>.");
+  if(f.bl===4)p.push("Survives almost everything, so <b>anaerobes and ESCAPPM in</b>.");
+  if(f.sp===0)p.push("Uptake needs oxygen, so <b>aerobic Gram −ve bacilli only</b>: no anaerobes, no strep.");
+  if(f.sp===1)p.push("Only activated without oxygen, so <b>anaerobes only</b>.");
+  if(f.at===0)p.push("Gets into cells and doesn't need a wall, so <b>atypicals in</b>.");
+  if(f.ps===0)p.push("<b>Anti-pseudomonal.</b>");
+  return p.join(" ");
+}
+function frameV(){
+  main.innerHTML="";
+  const sw=el(`<div class="filter" style="margin:0 0 10px"><button data-m="drug" class="${FMODE==="drug"?"on":""}">Drug → bug</button><button data-m="bug" class="${FMODE==="bug"?"on":""}">Bug → drug</button></div>`);
+  sw.querySelectorAll("button").forEach(b=>b.onclick=()=>{FMODE=b.dataset.m;frameV()});
+  main.appendChild(sw);
+  main.appendChild(el(FMODE==="drug"
+    ?`<div class="card" style="padding:12px 14px"><div class="q-label">The drug → bug framework</div><ol style="margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6"><li><b>What does it hit?</b> Wall via PBPs, wall via D-Ala-D-Ala, ribosome, DNA or folate.</li><li><b>Can it get in?</b> Through the Gram −ve outer membrane, and into cells for atypicals.</li><li><b>What can destroy it?</b> Penicillinase, inhibitor-protected, AmpC-stable or carbapenem-stable.</li><li><b>Any special conditions?</b> Needs oxygen (aminoglycosides) or no oxygen (metronidazole).</li></ol><div class="note" style="margin-top:6px">Answer the four questions, predict the coverage, then check it against the chart.</div></div>`
+    :`<div class="card" style="padding:12px 14px"><div class="q-label">The bug → drug framework</div><ol style="margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.6"><li><b>What kind of bug?</b> Gram +ve, Gram −ve, anaerobe or atypical.</li><li><b>How does it defend itself?</b> PBP2a, β-lactamase, AmpC, porins and pumps, no wall.</li><li><b>So what must the drug do?</b> Get past exactly that defence.</li></ol><div class="note" style="margin-top:6px">Then pick every drug that fits.</div></div>`));
+  (FMODE==="drug"?frameDrug:frameBug)();
+}
+function stepCard(host,label,q,opts,ans,onDone,why){
+  const c=el(`<div class="card fstep"><div class="q-label">${label}</div><div style="font-weight:700;font-size:16px;margin:2px 0 4px">${q}</div><div class="fo"></div></div>`);
+  const fo=c.querySelector(".fo");let done=false;
+  opts.forEach((o,i)=>{const b=el(`<button class="opt">${o}</button>`);b.onclick=()=>{if(done)return;done=true;const ok=i===ans;b.classList.add(ok?"ok":"bad");if(!ok)fo.children[ans].classList.add("ok");if(why)c.appendChild(el(`<div class="why" style="display:block">${why}</div>`));onDone(ok)};fo.appendChild(b)});
+  host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function frameDrug(){
+  const d=pickWeighted(DRUGS,x=>"f:"+x.id),f=F[d.id];let ok=0,tot=0;
+  const host=el(`<div></div>`);main.appendChild(host);
+  host.appendChild(el(`<div class="card"><div class="q-label">Reason it out</div><div class="q-title">${d.n}</div><div class="q-sub">${d.c}</div></div>`));
+  const steps=[["1 · Target","What does it hit?",HITS,f.hit],["2 · Getting in","Can it get through the Gram −ve outer membrane?",OMS,f.om]];
+  if(f.bl!=null)steps.push(["3 · Defences","How does it cope with β-lactamases?",BLS,f.bl]);
+  steps.push(["4 · Special conditions","Does it need anything special to work?",SPS,f.sp],["5 · Atypicals","Can it work inside cells, without a cell wall?",YN,f.at],["6 · Pseudomonas","Is it anti-pseudomonal?",YN,f.ps]);
+  let k=0;
+  const next=()=>{if(k<steps.length){const [l,q,o,a]=steps[k++];stepCard(host,l,q,o,a,r=>{tot++;if(r)ok++;next()});return}
+    if(f.bl==null&&f.hit===0)host.appendChild(el(`<div class="note" style="margin:-4px 2px 10px">${f.note||""}</div>`));
+    host.appendChild(el(`<div class="card" style="border-color:var(--ink)"><div class="q-label">So you'd predict…</div><div style="font-size:15px;line-height:1.55">${predictText(f)}</div>${f.note?`<div class="note" style="margin-top:6px">Exception: ${f.note}</div>`:""}</div>`));
+    const sel=new Set();let done=false;
+    const c=el(`<div class="card"><div class="q-label">Now tick what it covers</div><div class="g"></div><div class="verdict"></div><div class="why"></div><div class="row"><button class="btn">Check</button></div></div>`);
+    const g=c.querySelector(".g");
+    GROUPS.forEach(gr=>{const box=el(`<div class="group"><span class="ghead" style="background:${gr.col}">${gr.name}</span><div class="chips"></div></div>`);gr.bugs.forEach(b=>{const ch=el(`<button class="chip" data-b="${b}">${BUG[b]}</button>`);ch.onclick=()=>{if(done)return;sel.has(b)?sel.delete(b):sel.add(b);ch.classList.toggle("sel")};box.querySelector(".chips").appendChild(ch)});g.appendChild(box)});
+    c.querySelector(".btn").onclick=()=>{
+      if(done){frameV();window.scrollTo(0,0);return}done=true;let w=0,m=0;
+      g.querySelectorAll(".chip").forEach(ch=>{const b=ch.dataset.b,y=d.set.has(b),s=sel.has(b);ch.classList.remove("sel");if(y&&s)ch.classList.add("ok");else if(!y&&s){ch.classList.add("bad");w++}else if(y&&!s){ch.classList.add("miss");m++}});
+      const perfect=!w&&!m;record("f:"+d.id,perfect&&ok===tot);
+      const v=c.querySelector(".verdict");v.textContent=`Framework ${ok}/${tot} · coverage ${perfect?"spot on":m+" missed, "+w+" wrong"}`;v.style.color=perfect?"var(--ok)":"var(--bad)";
+      const wy=c.querySelector(".why");wy.style.display="block";wy.innerHTML=`<b>Why</b>${d.w}`;
+      c.querySelector(".btn").textContent="Next drug";
+    };
+    host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+  next();
+}
+function frameBug(){
+  const b=pickWeighted(ALLBUGS,x=>"fb:"+x),f=BF[b];let ok=0,tot=0;
+  const host=el(`<div></div>`);main.appendChild(host);
+  host.appendChild(el(`<div class="card"><div class="q-label">Reason it out</div><div class="q-title" style="font-style:italic;color:${BUGCOL[b]}">${BUG[b]}</div></div>`));
+  const steps=[["1 · What is it?","What kind of organism is it?",KINDS,f.k,null],["2 · Its defence","What's its main defence against antibiotics?",DEFS,f.d,DEFWHY[b]],["3 · So the drug must…","What does a drug need to do to treat it?",NEEDS,f.n,null]];
+  let k=0;
+  const next=()=>{if(k<steps.length){const [l,q,o,a,w]=steps[k++];const order=shuffle(o.map((x,i)=>i)).slice(0,0);
+      const idx=[a].concat(shuffle(o.map((x,i)=>i).filter(i=>i!==a)).slice(0,3));const sh=shuffle(idx);
+      stepCard(host,l,q,sh.map(i=>o[i]),sh.indexOf(a),r=>{tot++;if(r)ok++;next()},w);return}
+    const sel=new Set();let done=false;const cover=DRUGS.filter(d=>d.set.has(b));
+    const c=el(`<div class="card"><div class="q-label">Now pick every drug that fits</div><div class="chips g"></div><div class="verdict"></div><div class="why"></div><div class="row"><button class="btn">Check</button></div></div>`);
+    const g=c.querySelector(".g");
+    DRUGS.forEach(d=>{const ch=el(`<button class="chip drug" data-d="${d.id}">${d.n}</button>`);ch.onclick=()=>{if(done)return;sel.has(d.id)?sel.delete(d.id):sel.add(d.id);ch.classList.toggle("sel")};g.appendChild(ch)});
+    c.querySelector(".btn").onclick=()=>{
+      if(done){frameV();window.scrollTo(0,0);return}done=true;let w=0,m=0;
+      g.querySelectorAll(".chip").forEach(ch=>{const id=ch.dataset.d,y=DRUGS.find(x=>x.id===id).set.has(b),s=sel.has(id);ch.classList.remove("sel");if(y&&s)ch.classList.add("ok");else if(!y&&s){ch.classList.add("bad");w++}else if(y&&!s){ch.classList.add("miss");m++}});
+      const perfect=!w&&!m;record("fb:"+b,perfect&&ok===tot);
+      const v=c.querySelector(".verdict");v.textContent=`Framework ${ok}/${tot} · drugs ${perfect?"spot on":m+" missed, "+w+" wrong"}`;v.style.color=perfect?"var(--ok)":"var(--bad)";
+      const wy=c.querySelector(".why");wy.style.display="block";
+      wy.innerHTML=`<b>How the framework gets you there</b>${DEFWHY[b]} So the drugs that work are the ones that ${NEEDS[f.n].charAt(0).toLowerCase()+NEEDS[f.n].slice(1)}: ${cover.map(d=>d.n).join(", ")}.`;
+      c.querySelector(".btn").textContent="Next bug";
+    };
+    host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
+  };
+  next();
 }
 
 render();
