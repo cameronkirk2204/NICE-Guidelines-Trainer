@@ -680,6 +680,53 @@ function lactamSVG(){
   </svg>`;
 }
 
+/* explanations shown after each framework step */
+const HITWHY={
+ 0:"All β-lactams (penicillins, cephalosporins, carbapenems, monobactams) share a 4-membered β-lactam ring that looks like the D-Ala-D-Ala end of the wall building block. PBPs grab it and get permanently stuck, so the wall can't be cross-linked and the cell bursts.",
+ 1:"Glycopeptides grab the D-Ala-D-Ala tail of the building block itself, not the enzyme. That's why MRSA's altered PBP doesn't protect it.",
+ aminos:"Aminoglycosides bind the 16S rRNA in the 30S subunit and make it misread the code. Faulty proteins end up in the membrane, which leaks, so they kill the cell (bactericidal).",
+ tets:"Tetracyclines bind the 30S subunit and stop new tRNAs docking at the A-site. Protein synthesis stalls, so they're bacteriostatic.",
+ macro:"Macrolides plug the tunnel the new protein exits the 50S subunit through. Bacteriostatic.",
+ linc:"Clindamycin binds the 50S subunit next to where macrolides bind. Bacteriostatic, and it also switches off toxin production.",
+ 4:"Quinolones trap DNA gyrase (the main target in Gram −ves) and topoisomerase IV (the main target in Gram +ves) on cut DNA, so the chromosome fragments. Bactericidal.",
+ 5:"Sulfamethoxazole and trimethoprim block two steps of folate synthesis. Bacteria have to make their own folate, but we absorb ours from food, which is why it's selective.",
+ 6:"Metronidazole is a prodrug. Its nitro group has to be reduced to a radical that breaks DNA, and only anaerobes can do that reduction."
+};
+const OMWHY=[
+ "Small and water-loving (or zwitterionic, like cefepime), so it passes through Gram −ve porins.",
+ "It squeezes through some porins, enough for the easier Gram −ves like E. coli, but organisms with tighter membranes, pumps or β-lactamases keep it out.",
+ "Too big (vancomycin is about 1450 Da) or too greasy (macrolides, clindamycin) to fit through porins, so Gram −ve bacilli are out of reach."
+];
+const BLWHY=[
+ "Nothing protects the ring, so staph penicillinase and common Gram −ve β-lactamases cut it. That's why plain penicillin and amoxicillin miss MSSA and Klebsiella.",
+ "A bulky side chain (flucloxacillin) or the cephalosporin core shields the ring from staph penicillinase. But chromosomal AmpC in ESCAPPM still breaks it, especially once AmpC is switched up during treatment.",
+ "Clavulanate, sulbactam and tazobactam are decoy β-lactams. The β-lactamase grabs them and gets stuck, so the partner penicillin survives. That unlocks the three β-lactamase producers: staph, Klebsiella and Bacteroides.",
+ "Cefepime is a zwitterion: it gets through porins fast and is a poor substrate for AmpC, so it holds up against ESCAPPM.",
+ "Carbapenems swap the ring's sulfur for carbon and carry a side chain that blocks most β-lactamases, including AmpC and ESBLs. Only carbapenemases beat them."
+];
+const SPWHY=[
+ "Aminoglycosides are pulled into the cell by the electrical gradient that aerobic respiration creates. No oxygen, no gradient, no uptake. That's why they miss anaerobes, and strep (which ferment).",
+ "Its nitro group only gets reduced to the DNA-breaking radical by low-redox electron carriers (ferredoxin) found in anaerobes. In aerobes, oxygen takes the electron straight back.",
+ "No special conditions, so anaerobe cover comes down to whether it survives anaerobe β-lactamase or gets past their other defences."
+];
+const ATWHY={yes:"Macrolides, tetracyclines and the respiratory quinolones (levo, moxi) concentrate inside cells and don't need a wall to work, which is exactly what atypicals require.",
+ wall:"It works on the cell wall, and Mycoplasma has none. Chlamydia and Legionella hide inside cells, where wall drugs don't help either.",
+ no:"It doesn't build up inside cells well enough to treat intracellular organisms, so it isn't used for atypicals."};
+const PSWHY={yes:"It belongs to the anti-pseudomonal club: it gets through Pseudomonas' few porins and survives its efflux pumps and AmpC. The club: ceftazidime, cefepime, pip-tazo, meropenem/imipenem, aztreonam, cipro, levo, aminoglycosides.",
+ erta:"No. Ertapenem doesn't get through the OprD porin well and gets pumped out. It's the carbapenem trap.",
+ moxi:"No. Moxifloxacin traded its anti-pseudomonal activity for anaerobe and Gram +ve cover. It's the quinolone trap.",
+ ceftri:"No. Ceftriaxone can't get past Pseudomonas' porins and pumps; its sister ceftazidime can.",
+ no:"No. It can't get past Pseudomonas' tight outer membrane, efflux pumps and AmpC."};
+const KINDWHY={mrsa:"Staphylococcus aureus: Gram +ve cocci in clusters.",mssa:"Staphylococcus aureus: Gram +ve cocci in clusters.",strep:"Gram +ve cocci in chains (or pairs, like pneumococcus).",ecoli:"Gram −ve rod: an Enterobacterales gut organism.",pmir:"Gram −ve rod from the gut, famous for swarming and making urease (stones).",kleb:"Gram −ve rod with a thick capsule, from the gut.",pseud:"Gram −ve rod that lives in water and soil and loves damp hospital kit.",escappm:"A group of Gram −ve rods: Enterobacter, Serratia, Citrobacter freundii, Aeromonas, Proteus vulgaris, Providencia, Morganella.",ngon:"Gram −ve diplococcus (kidney-bean pairs).",nmen:"Gram −ve diplococcus (kidney-bean pairs).",anaer:"Bacteroides and friends: they grow without oxygen, in the gut, abscesses and dental infections.",atyp:"Mycoplasma has no wall at all; Chlamydia and Legionella live inside cells. Neither shows up on a Gram stain."};
+function drugWhy(d,f,step){
+  if(step==="hit"){const key=f.hit===2?(d.id==="amino"?"aminos":"tets"):f.hit===3?(d.id==="clinda"?"linc":"macro"):f.hit;return `<b>${d.c}.</b> ${HITWHY[key]}`}
+  if(step==="om")return OMWHY[f.om]+(f.note&&/membrane|Proteus|Neisseria/.test(f.note)?" "+f.note:"");
+  if(step==="bl")return BLWHY[f.bl]+(d.id==="cefox"?" "+f.note:"");
+  if(step==="sp")return SPWHY[f.sp];
+  if(step==="at")return f.at===0?ATWHY.yes:(f.hit<=1?ATWHY.wall:ATWHY.no);
+  if(step==="ps")return f.ps===0?PSWHY.yes:(PSWHY[d.id]||PSWHY.no);
+}
+
 /* ---------- framework: reason it out ---------- */
 const HITS=["Cell wall: binds PBPs","Cell wall: binds D-Ala-D-Ala","Ribosome: 30S","Ribosome: 50S","DNA gyrase / topoisomerase IV","Folate synthesis","DNA, via toxic radicals"];
 const OMS=["Yes, gets through well","Partly (only the easier Gram −ves)","No, it's kept out"];
@@ -739,18 +786,19 @@ function frameV(){
 function stepCard(host,label,q,opts,ans,onDone,why){
   const c=el(`<div class="card fstep"><div class="q-label">${label}</div><div style="font-weight:700;font-size:16px;margin:2px 0 4px">${q}</div><div class="fo"></div></div>`);
   const fo=c.querySelector(".fo");let done=false;
-  opts.forEach((o,i)=>{const b=el(`<button class="opt">${o}</button>`);b.onclick=()=>{if(done)return;done=true;const ok=i===ans;b.classList.add(ok?"ok":"bad");if(!ok)fo.children[ans].classList.add("ok");if(why)c.appendChild(el(`<div class="why" style="display:block">${why}</div>`));onDone(ok)};fo.appendChild(b)});
+  opts.forEach((o,i)=>{const b=el(`<button class="opt">${o}</button>`);b.onclick=()=>{if(done)return;done=true;const ok=i===ans;b.classList.add(ok?"ok":"bad");if(!ok)fo.children[ans].classList.add("ok");
+    if(why){c.appendChild(el(`<div class="why" style="display:block"><b>${ok?"Right.":"Not quite."} Why</b>${why}</div>`));const nb=el(`<button class="btn" style="margin-top:10px">Next</button>`);nb.onclick=()=>{nb.remove();onDone(ok)};c.appendChild(nb);nb.scrollIntoView({behavior:"smooth",block:"nearest"})}else onDone(ok)};fo.appendChild(b)});
   host.appendChild(c);c.scrollIntoView({behavior:"smooth",block:"start"});
 }
 function frameDrug(){
   const d=pickWeighted(DRUGS,x=>"f:"+x.id),f=F[d.id];let ok=0,tot=0;
   const host=el(`<div></div>`);main.appendChild(host);
   host.appendChild(el(`<div class="card"><div class="q-label">Reason it out</div><div class="q-title">${d.n}</div><div class="q-sub">${d.c}</div></div>`));
-  const steps=[["1 · Target","What does it hit?",HITS,f.hit],["2 · Getting in","Can it get through the Gram −ve outer membrane?",OMS,f.om]];
-  if(f.bl!=null)steps.push(["3 · Defences","How does it cope with β-lactamases?",BLS,f.bl]);
-  steps.push(["4 · Special conditions","Does it need anything special to work?",SPS,f.sp],["5 · Atypicals","Can it work inside cells, without a cell wall?",YN,f.at],["6 · Pseudomonas","Is it anti-pseudomonal?",YN,f.ps]);
+  const steps=[["1 · Target","What does it hit?",HITS,f.hit,"hit"],["2 · Getting in","Can it get through the Gram −ve outer membrane?",OMS,f.om,"om"]];
+  if(f.bl!=null)steps.push(["3 · Defences","How does it cope with β-lactamases?",BLS,f.bl,"bl"]);
+  steps.push(["4 · Special conditions","Does it need anything special to work?",SPS,f.sp,"sp"],["5 · Atypicals","Can it work inside cells, without a cell wall?",YN,f.at,"at"],["6 · Pseudomonas","Is it anti-pseudomonal?",YN,f.ps,"ps"]);
   let k=0;
-  const next=()=>{if(k<steps.length){const [l,q,o,a]=steps[k++];stepCard(host,l,q,o,a,r=>{tot++;if(r)ok++;next()});return}
+  const next=()=>{if(k<steps.length){const [l,q,o,a,st]=steps[k++];stepCard(host,l,q,o,a,r=>{tot++;if(r)ok++;next()},drugWhy(d,f,st));return}
     if(f.bl==null&&f.hit===0)host.appendChild(el(`<div class="note" style="margin:-4px 2px 10px">${f.note||""}</div>`));
     host.appendChild(el(`<div class="card" style="border-color:var(--ink)"><div class="q-label">So you'd predict…</div><div style="font-size:15px;line-height:1.55">${predictText(f)}</div>${f.note?`<div class="note" style="margin-top:6px">Exception: ${f.note}</div>`:""}</div>`));
     const sel=new Set();let done=false;
@@ -773,7 +821,7 @@ function frameBug(){
   const b=pickWeighted(ALLBUGS,x=>"fb:"+x),f=BF[b];let ok=0,tot=0;
   const host=el(`<div></div>`);main.appendChild(host);
   host.appendChild(el(`<div class="card"><div class="q-label">Reason it out</div><div class="q-title" style="font-style:italic;color:${BUGCOL[b]}">${BUG[b]}</div></div>`));
-  const steps=[["1 · What is it?","What kind of organism is it?",KINDS,f.k,null],["2 · Its defence","What's its main defence against antibiotics?",DEFS,f.d,DEFWHY[b]],["3 · So the drug must…","What does a drug need to do to treat it?",NEEDS,f.n,null]];
+  const steps=[["1 · What is it?","What kind of organism is it?",KINDS,f.k,KINDWHY[b]],["2 · Its defence","What's its main defence against antibiotics?",DEFS,f.d,DEFWHY[b]],["3 · So the drug must…","What does a drug need to do to treat it?",NEEDS,f.n,`Get past that defence. For ${BUG[b]}: ${NEEDS[f.n].charAt(0).toLowerCase()+NEEDS[f.n].slice(1)}.`]];
   let k=0;
   const next=()=>{if(k<steps.length){const [l,q,o,a,w]=steps[k++];const order=shuffle(o.map((x,i)=>i)).slice(0,0);
       const idx=[a].concat(shuffle(o.map((x,i)=>i).filter(i=>i!==a)).slice(0,3));const sh=shuffle(idx);
